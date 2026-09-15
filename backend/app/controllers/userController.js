@@ -12,8 +12,8 @@ module.exports = {
           email: newUser.email,
         });
       })
-      .catch((err) => {
-        if (err === 11000) {
+      .catch((err => {
+        if (err.code === 11000) {
           res.status(409).json({
             error: true,
             message: "User already exist.",
