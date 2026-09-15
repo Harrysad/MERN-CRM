@@ -1,0 +1,43 @@
+:root {
+  --crm-primary: #2563eb;
+  --crm-primary-dark: #1d4ed8;
+  --crm-primary-light: #eff6ff;
+  --crm-secondary: #64748b;
+  --crm-success: #059669;
+  --crm-danger: #dc2626;
+  --crm-warning: #d97706;
+  --crm-info: #0891b2;
+  --crm-dark: #0f172a;
+  --crm-bg: #f1f5f9;
+  --crm-card: #ffffff;
+  --crm-border: #e2e8f0;
+  --crm-text: #0f172a;
+  --crm-text-muted: #64748b;
+  --crm-navbar-h: 64px;
+  --crm-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --crm-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+  --crm-radius: 10px;
+  --crm-radius-sm: 6px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--crm-bg);
+  color: var(--crm-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
