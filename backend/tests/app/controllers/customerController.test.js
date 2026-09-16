@@ -1,0 +1,137 @@
+const request = require("supertest");
+const app = require("../../../app");
+const { connect, closeDatabase, clearDatabase } = require("../../setup");
+
+let token;
+
+beforeAll(async () => {
+  await connect();
+});
+
+afterEach(async () => {
+  await clearDatabase();
+});
+
+afterAll(async () => {
+  await closeDatabase();
+});
+
+beforeEach(async () => {
+  await request(app).post("/auth/signup").send({
+    name: "Jan Kowalski",
+    email: "jan@example.com",
+    password: "password123",
+  });
+
+  const loginRes = await request(app).post("/auth/login").send({
+    email: "jan@example.com",
+    password: "password123",
+  });
+
+  token = loginRes.body.jwt;
+});
+
+const sampleCustomer = {
+  name: "Acme Sp. z o.o.",
+  address: {
+    street: "Testowa 1",
+    suite: "10",
+    city: "Warszawa",
+    postcode: "00-001",
+  },
+  nip: "1234567890",
+};
+
+describe("Authorization", () => {
+  it("rejects requests without a token", async () => {
+    const res = await request(app).get("/customers");
+    expect(res.statusCode).toBe(401);
+  });
+});
+
+describe("POST /customers/add", () => {
+  it("creates a new customer", async () => {
+    const res = await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send(sampleCustomer);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.name).toBe(sampleCustomer.name);
+    expect(res.body.nip).toBe(sampleCustomer.nip);
+  });
+
+  it("rejects a duplicate NIP", async () => {
+    await request(app).post("/customers/add").set("Authorization", token).send(sampleCustomer);
+
+    const res = await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send({ ...sampleCustomer, name: "Inna Firma" });
+
+    expect(res.statusCode).toBe(409);
+  });
+});
+
+describe("GET /customers", () => {
+  it("returns a paginated list", async () => {
+    await request(app).post("/customers/add").set("Authorization", token).send(sampleCustomer);
+
+    const res = await request(app).get("/customers").set("Authorization", token);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.total).toBe(1);
+  });
+});
+
+describe("GET /customers/:id", () => {
+  it("returns a single customer", async () => {
+    await request(app).post("/customers/add").set("Authorization", token).send(sampleCustomer);
+    const listRes = await request(app).get("/customers").set("Authorization", token);
+    const customerId = listRes.body.data[0]._id;
+
+    const res = await request(app).get(`/customers/${customerId}`).set("Authorization", token);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.nip).toBe(sampleCustomer.nip);
+  });
+
+  it("returns 404 for a nonexistent customer", async () => {
+    const res = await request(app)
+      .get("/customers/000000000000000000000000")
+      .set("Authorization", token);
+
+    expect(res.statusCode).toBe(404);
+  });
+});
+
+describe("PUT /customers/edit/:id", () => {
+  it("updates an existing customer", async () => {
+    await request(app).post("/customers/add").set("Authorization", token).send(sampleCustomer);
+    const listRes = await request(app).get("/customers").set("Authorization", token);
+    const customerId = listRes.body.data[0]._id;
+
+    const res = await request(app)
+      .put(`/customers/edit/${customerId}`)
+      .set("Authorization", token)
+      .send({ name: "Nowa Nazwa" });
+
+    expect(res.statusCode).toBe(200);
+  });
+});
+
+describe("DELETE /customers/delete/:id", () => {
+  it("deletes an existing customer", async () => {
+    await request(app).post("/customers/add").set("Authorization", token).send(sampleCustomer);
+    const listRes = await request(app).get("/customers").set("Authorization", token);
+    const customerId = listRes.body.data[0]._id;
+
+    const res = await request(app)
+      .delete(`/customers/delete/${customerId}`)
+      .set("Authorization", token);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.deleted).toBe(true);
+  });
+});

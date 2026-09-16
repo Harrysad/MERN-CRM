@@ -1,19 +1,13 @@
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv");
-
 const cookieParser = require("cookie-parser");
-const { connectDB } = require("./app/configs/config");
-const app = express();
-
-dotenv.config();
-
-connectDB();
 
 const customerRouter = require("./app/router/customerRouter");
 const actionRouter = require("./app/router/actionRouter");
 const authMiddleware = require("./app/middlewares/authMiddleware");
 const userRouter = require("./app/router/userRouter");
+
+const app = express();
 
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -35,7 +29,4 @@ app.use("/auth", userRouter);
 app.use("/customers", authMiddleware, customerRouter);
 app.use("/actions", authMiddleware, actionRouter);
 
-const PORT = process.env.PORT;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+module.exports = app;
