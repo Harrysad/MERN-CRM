@@ -14,4 +14,4 @@ ENV NODE_ENV=production
 COPY --from=build /app/node_modules ./node_modules
 COPY . .
 EXPOSE 5070
-CMD ["node", "app.js"]
+CMD ["node", "server.js"]
