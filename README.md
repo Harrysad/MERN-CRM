@@ -56,6 +56,16 @@ Data persists between runs. To fully reset the local database:
 docker compose down -v
 \```
 
+## Running Tests
+
+\```bash
+# Backend
+cd backend && npm test
+
+# Frontend
+cd frontend && npm test -- run
+\```
+
 ## What I'd Improve Next
 
 - Add automated tests (Jest / React Testing Library)
