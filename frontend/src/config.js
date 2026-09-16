@@ -1,7 +1,6 @@
 const config = {
   api: {
-    url: "http://localhost:5070",
-    // url: "https://hn39pc0c-5070.euw.devtunnels.ms",
+    url: import.meta.env.VITE_API_URL || "http://localhost:5070",
   },
 };
 
