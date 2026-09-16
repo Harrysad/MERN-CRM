@@ -39,6 +39,23 @@ npm run dev
 
 Requires a MongoDB connection string and JWT secret in `backend/.env`.
 
+## Run with Docker (recommended)
+
+No local Node.js or MongoDB installation required.
+
+\```bash
+docker compose up
+\```
+
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:5070
+
+Data persists between runs. To fully reset the local database:
+
+\```bash
+docker compose down -v
+\```
+
 ## What I'd Improve Next
 
 - Add automated tests (Jest / React Testing Library)
