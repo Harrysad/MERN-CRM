@@ -162,7 +162,58 @@ const CustomerList = ({
             </tbody>
           </table>
         </div>
+
+        <div className="crm-mobile-list">
+          {customers.length === 0 ? (
+            <div className="crm-mobile-empty">
+              <i className="fa-solid fa-inbox fa-2x mb-2 d-block"></i>
+              Brak klientów
+            </div>
+          ) : (
+            customers.map((row) => (
+              <div className="crm-mobile-card" key={row._id}>
+                <NavLink to={`/customers/${row._id}`} className="crm-mobile-card__main">
+                  <div className="crm-mobile-card__avatar">
+                    {row.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="crm-mobile-card__name">{row.name}</div>
+                    <div className="crm-mobile-card__nip">{formatNipCode(row.nip)}</div>
+                  </div>
+                </NavLink>
+                <div className="btn-actions-group">
+                  <NavLink
+                    to={`/customers/${row._id}`}
+                    className="btn-icon btn-icon--view"
+                    title="Szczegóły"
+                  >
+                    <i className="fa-solid fa-eye"></i>
+                  </NavLink>
+                  <NavLink
+                    to={`/customers/edit/${row._id}`}
+                    className="btn-icon btn-icon--edit"
+                    title="Edytuj"
+                  >
+                    <i className="fa-solid fa-pen"></i>
+                  </NavLink>
+                  <button
+                    className="btn-icon btn-icon--delete"
+                    title="Usuń"
+                    onClick={() => {
+                      setSelectedCustomerId(row._id);
+                      setModalVisible(true);
+                    }}
+                  >
+                    <i className="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
+
+
 
       <DeleteModal
         show={modalVisible}
