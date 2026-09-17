@@ -1,17 +1,30 @@
 const Customer = require("../models/CustomerModel");
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 module.exports = {
   index: (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const sortField = req.query.sort || "name";
     const sortOrder = req.query.order === "desc" ? -1 : 1;
+    const search = req.query.search?.trim();
+
+    const filter = search
+    ? {
+      $or: [
+        { name: { $regex: escapeRegex(search), $options: "i" } },
+        { "address.city": { $regex: escapeRegex(search), $options: "i" } },
+        { nip: { $regex: escapeRegex(search), $options: "i" } },
+      ],
+    }
+    : {};
 
     const startIndex = (page - 1) * limit;
 
-    Customer.countDocuments()
+    Customer.countDocuments(filter)
       .then((total) => {
-        Customer.find()
+        Customer.find(filter)
         .sort({[sortField]: sortOrder})
           .skip(startIndex)
           .limit(limit)

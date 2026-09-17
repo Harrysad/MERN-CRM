@@ -12,6 +12,8 @@ const CustomerList = ({
   toggleSortOrder,
   sortField,
   sortOrder,
+  searchTerm,
+  onSearchChange,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
@@ -50,6 +52,15 @@ const CustomerList = ({
       <div className="crm-card mb-3">
         <div className="crm-card__header">
           <div className="sort-toolbar">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Szukaj po nazwie, NIP lub mieście..."
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              style={{ maxWidth: 280 }}
+              aria-label="Szukaj klientów"
+            />
             <label htmlFor="sortSelect">
               <i className="fa-solid fa-arrow-up-wide-short me-1"></i>
               Sortuj według:

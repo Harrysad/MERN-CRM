@@ -135,3 +135,62 @@ describe("DELETE /customers/delete/:id", () => {
     expect(res.body.deleted).toBe(true);
   });
 });
+
+describe("GET /customers?search=", () => {
+  beforeEach(async () => {
+    await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send({
+        name: "Google LLC",
+        address: {
+          street: "1600 Amphitheatre Parkway",
+          suite: "1",
+          city: "Mountain View",
+          postcode: "94043",
+        },
+        nip: "1234567890",
+      });
+    await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send({
+        name: "Microsoft Corporation",
+        address: {
+          street: "One Microsoft Way",
+          suite: "2",
+          city: "Redmond",
+        postcode: "98052",
+      },
+      nip: "0987654321",
+    });
+  });
+
+  it("finds a customer by partial name match (case-insensitive)", async () => {
+    const res = await request(app).get("/customers?search=google").set("Authorization", token);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("Google LLC");
+  });
+
+  it("finds a customer by NIP", async () => {
+    const res = await request(app).get("/customers?search=0987654321").set("Authorization", token)
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("Microsoft Corporation");
+  });
+
+  it("finds a customer by city", async () => {
+    const res = await request(app).get("/customers?search=redmond").set("Authorization", token)
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("Microsoft Corporation");
+  });
+
+  it("returns an empty list if no matches are found", async () => {
+    const res = await request(app).get("/customers?search=nonexistent").set("Authorization", token);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data).toHaveLength(0);
+    expect(res.body.total).toBe(0);
+  });
+});
