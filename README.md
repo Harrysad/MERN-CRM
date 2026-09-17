@@ -2,6 +2,16 @@
 
 A full-stack Customer Relationship Management system built to practice real-world patterns: authentication, REST API design, and a component-based React frontend.
 
+## Live Demo
+
+🔗 **[https://mern-crm-frontend-dfos.onrender.com](https://mern-crm-frontend-dfos.onrender.com)**
+
+Test credentials:
+- Email: `demo@example.com`
+- Password: `Demo12345`
+
+*(Free-tier hosting — the backend may take ~30s to wake up on first request.)*
+
 ## Features
 
 - 🔐 JWT-based authentication (register, login, logout)
