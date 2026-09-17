@@ -24,9 +24,11 @@ api.interceptors.request.use(
   }
 );
 
-export const getCustomers = async (page, limit, sort, order) => {
+export const getCustomers = async (page, limit, sort, order, search = "") => {
   try {
-    const response = await api.get(`/?page=${page}&limit=${limit}&sort=${sort}&order=${order}`); //Tu dodać dwa parametry ?page
+    const response = await api.get(
+      `/?page=${page}&limit=${limit}&sort=${sort}&order=${order}&search=${encodeURIComponent(search)}`
+    );
     return response.data;
   } catch (error) {
     console.error("Błąd podczas pobierania danych:", error);

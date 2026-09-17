@@ -12,6 +12,7 @@ import Pagination from "./components/Pagination";
 import SessionTimeoutModal from "./components/modals/SessionTimeoutModal";
 import { deleteCookie, getCookie } from "./helpers/helpers";
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
+import { useDebouncedValue } from "./hooks/useDebouncedValue";
 
 const ProtectedRoute = ({ user, children }) => {
   if (!user) return <Navigate to="/home" replace />;
@@ -44,13 +45,15 @@ function App() {
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [sortField, setSortField] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebouncedValue(searchTerm, 300);
 
   const handleSortChange = (e) => setSortField(e.target.value);
   const toggleSortOrder = () =>
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
 
   const handleGetCustomers = (page = currentPage, limit = CUSTOMER_DATA_LIMIT) => {
-    getCustomers(page, limit, sortField, sortOrder).then((res) => {
+    getCustomers(page, limit, sortField, sortOrder, debouncedSearch).then((res) => {
       setCustomers(res.data);
       setTotalCustomers(res.total);
       setCurrentPage(res.page);
@@ -58,13 +61,13 @@ function App() {
   };
 
   useEffect(() => {
-    if (user) handleGetCustomers();
-  }, [user, sortField, sortOrder]);
+    if (user) handleGetCustomers(1);
+  }, [user, sortField, sortOrder, debouncedSearch]);
 
   const handleLogOut = useCallback(
     (e) => {
       e?.preventDefault();
-      logOutUser().catch(() => {});
+      logOutUser().catch(() => { });
       setShowSessionWarning(false);
       setUser(null);
       deleteCookie("user");
@@ -154,6 +157,8 @@ function App() {
                   toggleSortOrder={toggleSortOrder}
                   sortField={sortField}
                   sortOrder={sortOrder}
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
                 />
                 <Pagination
                   dataPerPage={CUSTOMER_DATA_LIMIT}
