@@ -308,6 +308,8 @@
   }
 
   .auth-card {
+    display: block;
+    width: 100%;
     min-height: auto;
   }
 }

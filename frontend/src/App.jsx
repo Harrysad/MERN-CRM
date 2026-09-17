@@ -113,10 +113,6 @@ function App() {
               <i className="fa-solid fa-users"></i>
               Klienci
             </NavLink>
-            <NavLink to="/customers/add" className="crm-navbar__link" onClick={closeMenu}>
-              <i className="fa-solid fa-user-plus"></i>
-              Dodaj klienta
-            </NavLink>
           </div>
 
           <div className="crm-navbar__right">
