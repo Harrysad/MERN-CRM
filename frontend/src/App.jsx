@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Route, Routes, Navigate, useNavigate, NavLink } from "react-router-dom";
 import "./App.css";
 
 import { getCustomers } from "./apiService/customer/apiCustomer";
+import { logOutUser } from "./apiService/user/apiUser";
 import CustomerDetails from "./components/CustomerDetails";
 import CustomerForm from "./components/CustomerForm";
 import CustomerList from "./components/CustomerList";
 import { SignUpSignIn } from "./components/SignUpSignIn";
 import Pagination from "./components/Pagination";
+import SessionTimeoutModal from "./components/modals/SessionTimeoutModal";
 import { deleteCookie, getCookie } from "./helpers/helpers";
+import { useInactivityLogout } from "./hooks/useInactivityLogout";
 
 const ProtectedRoute = ({ user, children }) => {
   if (!user) return <Navigate to="/home" replace />;
@@ -16,10 +19,14 @@ const ProtectedRoute = ({ user, children }) => {
 };
 
 const CUSTOMER_DATA_LIMIT = 7;
+const SESSION_WARNING_MS = 4 * 60 * 1000;
+const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
+const SESSION_WARNING_SECONDS = (SESSION_TIMEOUT_MS - SESSION_WARNING_MS) / 1000;
 
 function App() {
   const [user, setUser] = useState(JSON.parse(getCookie("user") || "null"));
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showSessionWarning, setShowSessionWarning] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,11 +61,31 @@ function App() {
     if (user) handleGetCustomers();
   }, [user, sortField, sortOrder]);
 
-  const handleLogOut = (e) => {
-    e.preventDefault();
-    setUser(null);
-    deleteCookie("user");
-    navigate("/Home");
+  const handleLogOut = useCallback(
+    (e) => {
+      e?.preventDefault();
+      logOutUser().catch(() => {});
+      setShowSessionWarning(false);
+      setUser(null);
+      deleteCookie("user");
+      navigate("/Home");
+    },
+    [navigate]
+  );
+
+  const handleWarn = useCallback(() => setShowSessionWarning(true), []);
+
+  const { confirmActive } = useInactivityLogout({
+    enabled: !!user,
+    warnAfterMs: SESSION_WARNING_MS,
+    timeoutAfterMs: SESSION_TIMEOUT_MS,
+    onWarn: handleWarn,
+    onTimeout: handleLogOut,
+  });
+
+  const handleStayLoggedIn = () => {
+    setShowSessionWarning(false);
+    confirmActive();
   };
 
   const closeMenu = () => setMenuOpen(false);
@@ -104,6 +131,13 @@ function App() {
           </div>
         </nav>
       )}
+
+      <SessionTimeoutModal
+        show={showSessionWarning}
+        secondsUntilLogout={SESSION_WARNING_SECONDS}
+        onStay={handleStayLoggedIn}
+        onLogout={handleLogOut}
+      />
 
       <Routes>
         <Route path="/Home" element={<SignUpSignIn setUser={setUser} />} />
