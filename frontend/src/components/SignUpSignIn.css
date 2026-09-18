@@ -13,13 +13,14 @@
 .auth-card {
   background: #ffffff;
   border-radius: 20px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.05);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
   position: relative;
   overflow: hidden;
   width: 820px;
   max-width: 100%;
   min-height: 500px;
   display: flex;
+  color-scheme: light;
 }
 
 /* ── Form panel ── */
@@ -83,6 +84,19 @@
 
 .auth-form-panel .form-control::placeholder {
   color: #94a3b8;
+}
+
+.auth-form-panel .form-control:-webkit-autofill,
+.auth-form-panel .form-control:-webkit-autofill:hover {
+  -webkit-text-fill-color: #0f172a;
+  caret-color: #0f172a;
+  box-shadow: 0 0 0 1000px #f8fafc inset;
+}
+
+.auth-form-panel .form-control:-webkit-autofill:focus {
+  -webkit-text-fill-color: #0f172a;
+  caret-color: #0f172a;
+  box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .auth-input-icon {
@@ -265,10 +279,10 @@
 .auth-switch-btn {
   margin-top: 2rem;
   padding: 0.55rem 1.5rem;
-  border: 1.5px solid rgba(255,255,255,0.25);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
   border-radius: 8px;
   background: transparent;
-  color: rgba(255,255,255,0.8);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.825rem;
   font-weight: 600;
   cursor: pointer;
