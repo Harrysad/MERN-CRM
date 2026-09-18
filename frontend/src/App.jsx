@@ -98,7 +98,7 @@ function App() {
   return (
     <div className="App">
       {user && (
-        <nav className="crm-navbar">
+                <nav className="crm-navbar">
           <NavLink className="crm-navbar__brand" to="/" onClick={closeMenu}>
             <div className="crm-navbar__brand-icon">
               <i className="fa-solid fa-chart-line"></i>
@@ -115,6 +115,25 @@ function App() {
               <i className="fa-solid fa-users"></i>
               Klienci
             </NavLink>
+            <div className="crm-navbar__menu-divider" />
+            <button
+              className="crm-navbar__link crm-navbar__link--mobile"
+              onClick={toggleTheme}
+            >
+              <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`}></i>
+              {theme === "dark" ? "Jasny motyw" : "Ciemny motyw"}
+            </button>
+            <a
+              href="/Home"
+              className="crm-navbar__link crm-navbar__link--mobile crm-navbar__link--danger"
+              onClick={(e) => {
+                closeMenu();
+                handleLogOut(e);
+              }}
+            >
+              <i className="fa-solid fa-right-from-bracket"></i>
+              Wyloguj
+            </a>
           </div>
 
           <div className="crm-navbar__right">
@@ -134,6 +153,7 @@ function App() {
               className="crm-navbar__toggle"
               onClick={() => setMenuOpen((o) => !o)}
               aria-label="Menu"
+              aria-expanded={menuOpen}
             >
               <i className={`fa-solid ${menuOpen ? "fa-xmark" : "fa-bars"}`}></i>
             </button>

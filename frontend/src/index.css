@@ -13,6 +13,11 @@
   --crm-surface-alt: #f8fafc;
   --crm-border: #e2e8f0;
   --crm-border-light: #f1f5f9;
+  --crm-glass-bg: rgba(255, 255, 255, 0.78);
+  --crm-glass-border: rgba(15, 23, 42, 0.10);
+  --crm-glass-blur: 14px;
+  --crm-accent-text: #2563eb;
+  --crm-danger-text: #dc2626;
   --crm-text: #0f172a;
   --crm-text-muted: #64748b;
   --crm-navbar-h: 64px;
@@ -31,9 +36,15 @@
   --crm-border-light: #293548;
   --crm-text: #e2e8f0;
   --crm-text-muted: #94a3b8;
+  --crm-glass-bg: rgba(15, 23, 42, 0.74);
+  --crm-glass-border: rgba(255, 255, 255, 0.10);
+  --crm-accent-text: #93c5fd;
+  --crm-danger-text: #fca5a5;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
