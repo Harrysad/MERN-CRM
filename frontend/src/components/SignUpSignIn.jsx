@@ -46,7 +46,7 @@ export const SignUpSignIn = ({ setUser }) => {
   };
 
   return (
-    <div className="auth-page">
+    <div className="auth-page" data-bs-theme="light">
       <div className="auth-card">
         {/* Form panel */}
         <div className="auth-form-panel">
