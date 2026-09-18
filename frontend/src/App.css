@@ -747,6 +747,32 @@ body.login-page {
   color: #fff;
 }
 
+/* ── Mobile menu items ── */
+.crm-navbar__link--mobile,
+.crm-navbar__menu-divider {
+  display: none;
+}
+
+.crm-navbar__menu-divider {
+  height: 1px;
+  background: var(--crm-glass-border);
+  margin: 0.4rem 0;
+}
+
+button.crm-navbar__link {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.crm-navbar__link:focus-visible {
+  outline: 2px solid var(--crm-primary);
+  outline-offset: -2px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 991px) {
 
@@ -758,14 +784,52 @@ body.login-page {
   .crm-navbar__nav.open {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     position: fixed;
     top: var(--crm-navbar-h);
     left: 0;
     right: 0;
-    background: var(--crm-dark);
+    background: var(--crm-glass-bg);
+    -webkit-backdrop-filter: blur(var(--crm-glass-blur)) saturate(140%);
+    backdrop-filter: blur(var(--crm-glass-blur)) saturate(140%);
     padding: 0.75rem 1rem 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--crm-glass-border);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25);
     gap: 0.25rem;
+  }
+
+  .crm-navbar__nav.open .crm-navbar__link {
+    padding: 0.75rem 0.85rem;
+    font-size: 0.95rem;
+    color: var(--crm-text);
+  }
+
+  .crm-navbar__nav.open .crm-navbar__link:hover,
+  .crm-navbar__nav.open .crm-navbar__link.active {
+    background: var(--crm-primary-light);
+    color: var(--crm-accent-text);
+  }
+
+  .crm-navbar__nav.open .crm-navbar__link--danger {
+    color: var(--crm-danger-text);
+  }
+
+  .crm-navbar__nav.open .crm-navbar__link--danger:hover {
+    background: rgba(220, 38, 38, 0.12);
+    color: var(--crm-danger-text);
+  }
+
+  .crm-navbar__link--mobile {
+    display: flex;
+  }
+
+  .crm-navbar__menu-divider {
+    display: block;
+  }
+
+  .crm-navbar__right .crm-navbar__theme-toggle,
+  .crm-navbar__right .crm-navbar__logout {
+    display: none;
   }
 
   .crm-navbar__toggle {
@@ -779,12 +843,29 @@ body.login-page {
   .main-content {
     padding: 1.25rem 1rem;
   }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .crm-navbar__nav.open {
+      background: var(--crm-card);
+    }
+  }
 }
 
 @media (max-width: 576px) {
   .page-header {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-wrap: nowrap;
+
+    .crm-add-btn {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .crm-add-btn__label {
+      display: none;
+    }
   }
 
   .sort-toolbar {
