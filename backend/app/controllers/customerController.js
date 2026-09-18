@@ -1,31 +1,36 @@
 const Customer = require("../models/CustomerModel");
 
+const MAX_LIMIT = 100;
+const DEFAULT_LIMIT = 10;
+
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 module.exports = {
   index: (req, res) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const requestedPage = parseInt(req.query.page);
+    const requestedLimit = parseInt(req.query.limit);
+    const page = requestedPage > 0 ? requestedPage : 1;
+    const limit = requestedLimit > 0 ? Math.min(requestedLimit, MAX_LIMIT) : DEFAULT_LIMIT;
     const sortField = req.query.sort || "name";
     const sortOrder = req.query.order === "desc" ? -1 : 1;
     const search = req.query.search?.trim();
 
     const filter = search
-    ? {
-      $or: [
-        { name: { $regex: escapeRegex(search), $options: "i" } },
-        { "address.city": { $regex: escapeRegex(search), $options: "i" } },
-        { nip: { $regex: escapeRegex(search), $options: "i" } },
-      ],
-    }
-    : {};
+      ? {
+        $or: [
+          { name: { $regex: escapeRegex(search), $options: "i" } },
+          { "address.city": { $regex: escapeRegex(search), $options: "i" } },
+          { nip: { $regex: escapeRegex(search), $options: "i" } },
+        ],
+      }
+      : {};
 
     const startIndex = (page - 1) * limit;
 
     Customer.countDocuments(filter)
       .then((total) => {
         Customer.find(filter)
-        .sort({[sortField]: sortOrder})
+          .sort({ [sortField]: sortOrder })
           .skip(startIndex)
           .limit(limit)
           .lean()
