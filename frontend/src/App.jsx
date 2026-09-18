@@ -13,6 +13,7 @@ import SessionTimeoutModal from "./components/modals/SessionTimeoutModal";
 import { deleteCookie, getCookie } from "./helpers/helpers";
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
+import { useTheme } from "./hooks/useTheme";
 
 const ProtectedRoute = ({ user, children }) => {
   if (!user) return <Navigate to="/home" replace />;
@@ -29,6 +30,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showSessionWarning, setShowSessionWarning] = useState(false);
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (user) {
@@ -116,6 +118,14 @@ function App() {
           </div>
 
           <div className="crm-navbar__right">
+            <button
+              className="crm-navbar__theme-toggle"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Przełącz na jasny motyw" : "Przełącz na ciemny motyw"}
+              title={theme === "dark" ? "Jasny motyw" : "Ciemny motyw"}
+            >
+              <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`}></i>
+            </button>
             <a href="/Home" className="crm-navbar__logout" onClick={handleLogOut}>
               <i className="fa-solid fa-right-from-bracket"></i>
               Wyloguj
