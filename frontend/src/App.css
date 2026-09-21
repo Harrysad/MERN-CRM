@@ -991,7 +991,7 @@ button.crm-navbar__link {
     flex-wrap: nowrap;
   }
 
-  .crm-add-btn {
+  .crm-icon-btn {
     width: 44px;
     height: 44px;
     padding: 0;
@@ -999,7 +999,7 @@ button.crm-navbar__link {
     flex-shrink: 0;
   }
 
-  .crm-add-btn__label {
+  .crm-icon-btn__label {
     display: none;
   }
 

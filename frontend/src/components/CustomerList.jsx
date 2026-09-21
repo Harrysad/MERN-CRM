@@ -48,12 +48,12 @@ const CustomerList = ({
         </div>
         <NavLink
           to="/customers/add"
-          className="btn btn-primary d-flex align-items-center gap-2 crm-add-btn"
+          className="btn btn-primary d-flex align-items-center gap-2 crm-icon-btn"
           aria-label="Dodaj klienta"
           title="Dodaj klienta"
         >
           <i className="fa-solid fa-user-plus"></i>
-          <span className="crm-add-btn__label">Dodaj klienta</span>
+          <span className="crm-icon-btn__label">Dodaj klienta</span>
         </NavLink>
       </div>
 
