@@ -4,9 +4,9 @@ import DeleteModal from "./modals/DeleteModal";
 import ActionFormModal from "./modals/ActionFormModal";
 
 const TYPE_BADGE = {
-  Telefon:       { cls: "phone",   icon: "fa-phone" },
-  Spotkanie:     { cls: "meeting", icon: "fa-handshake" },
-  Mail:          { cls: "email",   icon: "fa-envelope" },
+  Telefon: { cls: "phone", icon: "fa-phone" },
+  Spotkanie: { cls: "meeting", icon: "fa-handshake" },
+  Mail: { cls: "email", icon: "fa-envelope" },
   "Wideo rozmowa": { cls: "video", icon: "fa-video" },
 };
 
@@ -61,6 +61,31 @@ const ActionList = ({ handleGetActions, customerName, allActions }) => {
       .catch(console.error);
   };
 
+  const renderRowButtons = (row) => (
+    <div className="btn-actions-group">
+      <button
+        className="btn-icon btn-icon--edit"
+        title="Edytuj"
+        onClick={() => {
+          setSelectedActionId(row._id);
+          setModalEditVisible(true);
+        }}
+      >
+        <i className="fa-solid fa-pen"></i>
+      </button>
+      <button
+        className="btn-icon btn-icon--delete"
+        title="Usuń"
+        onClick={() => {
+          setSelectedActionId(row._id);
+          setModalVisible(true);
+        }}
+      >
+        <i className="fa-solid fa-trash"></i>
+      </button>
+    </div>
+  );
+
   return (
     <>
       {allActions.length === 0 ? (
@@ -69,56 +94,55 @@ const ActionList = ({ handleGetActions, customerName, allActions }) => {
           Brak akcji — dodaj pierwszą interakcję z klientem
         </div>
       ) : (
-        <div className="crm-table-wrapper" style={{ border: "none", borderRadius: 0, boxShadow: "none" }}>
-          <table className="crm-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Typ</th>
-                <th>Opis</th>
-                <th>Data</th>
-                <th>Akcje</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allActions.map((row, index) => (
-                <tr key={row._id}>
-                  <td className="row-index">{index + 1}</td>
-                  <td><ActionBadge type={row.type} /></td>
-                  <td style={{ maxWidth: 280 }}>{row.description}</td>
-                  <td style={{ whiteSpace: "nowrap", color: "var(--crm-text-muted)", fontSize: "0.825rem" }}>
-                    <i className="fa-regular fa-calendar me-1"></i>
-                    {row.date.slice(0, 10)}
-                  </td>
-                  <td className="actions-cell">
-                    <div className="btn-actions-group">
-                      <button
-                        className="btn-icon btn-icon--edit"
-                        title="Edytuj"
-                        onClick={() => {
-                          setSelectedActionId(row._id);
-                          setModalEditVisible(true);
-                        }}
-                      >
-                        <i className="fa-solid fa-pen"></i>
-                      </button>
-                      <button
-                        className="btn-icon btn-icon--delete"
-                        title="Usuń"
-                        onClick={() => {
-                          setSelectedActionId(row._id);
-                          setModalVisible(true);
-                        }}
-                      >
-                        <i className="fa-solid fa-trash"></i>
-                      </button>
-                    </div>
-                  </td>
+        <>
+          <div className="crm-table-wrapper" style={{ border: "none", borderRadius: 0, boxShadow: "none" }}>
+            <table className="crm-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Typ</th>
+                  <th>Opis</th>
+                  <th>Data</th>
+                  <th>Akcje</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {allActions.map((row, index) => (
+                  <tr key={row._id}>
+                    <td className="row-index">{index + 1}</td>
+                    <td><ActionBadge type={row.type} /></td>
+                    <td style={{ maxWidth: 280 }}>{row.description}</td>
+                    <td style={{ whiteSpace: "nowrap", color: "var(--crm-text-muted)", fontSize: "0.825rem" }}>
+                      <i className="fa-regular fa-calendar me-1"></i>
+                      {row.date.slice(0, 10)}
+                    </td>
+                    <td className="actions-cell">{renderRowButtons(row)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="crm-mobile-list">
+            {allActions.map((row) => (
+              <div className="crm-mobile-card crm-mobile-card--action" key={row._id}>
+                <div className="crm-mobile-card__body">
+                  <div className="crm-mobile-card__meta">
+                    <ActionBadge type={row.type} />
+                    <span className="crm-mobile-card__date">
+                      <i className="fa-regular fa-calendar me-1"></i>
+                      {row.date.slice(0, 10)}
+                    </span>
+                  </div>
+                  {row.description && (
+                    <div className="crm-mobile-card__desc">{row.description}</div>
+                  )}
+                </div>
+                {renderRowButtons(row)}
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       <DeleteModal
