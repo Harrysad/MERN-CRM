@@ -59,7 +59,6 @@ const CustomerList = ({
 
       <div className="crm-card mb-3">
         <div className="crm-card__header">
-          <div className="crm-card__header">
             <CustomerToolbar
               searchTerm={searchTerm}
               onSearchChange={onSearchChange}
@@ -70,7 +69,6 @@ const CustomerList = ({
               pageSize={pageSize}
               onPageSizeChange={onPageSizeChange}
             />
-          </div>
         </div>
 
         <div className="crm-table-wrapper" style={{ border: "none", borderRadius: 0, boxShadow: "none" }}>
