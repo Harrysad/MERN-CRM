@@ -78,19 +78,15 @@ function CustomerDetails() {
             {customer?.name ?? "…"}
           </h1>
         </div>
-        <div className="d-flex gap-2">
-          <Link to={`/customers/edit/${id}`} className="btn btn-outline-primary d-flex align-items-center gap-2">
-            <i className="fa-solid fa-pen"></i>
-            Edytuj
-          </Link>
-          <button
-            className="btn btn-primary d-flex align-items-center gap-2"
-            onClick={() => setModalVisible(true)}
-          >
-            <i className="fa-solid fa-plus"></i>
-            Dodaj akcję
-          </button>
-        </div>
+        <Link
+          to={`/customers/edit/${id}`}
+          className="btn btn-outline-primary d-flex align-items-center gap-2 crm-icon-btn"
+          aria-label="Edytuj klienta"
+          title="Edytuj klienta"
+        >
+          <i className="fa-solid fa-pen"></i>
+          <span className="crm-icon-btn__label">Edytuj</span>
+        </Link>
       </div>
 
       <div className="customer-details">

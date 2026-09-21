@@ -991,7 +991,7 @@ button.crm-navbar__link {
     flex-wrap: nowrap;
   }
 
-  .crm-add-btn {
+  .crm-icon-btn {
     width: 44px;
     height: 44px;
     padding: 0;
@@ -999,7 +999,7 @@ button.crm-navbar__link {
     flex-shrink: 0;
   }
 
-  .crm-add-btn__label {
+  .crm-icon-btn__label {
     display: none;
   }
 
@@ -1092,5 +1092,36 @@ button.crm-navbar__link {
     text-align: center;
     padding: 2.5rem 1rem;
     color: var(--crm-text-muted);
+  }
+
+  .crm-mobile-card--action {
+    align-items: flex-start;
+  }
+
+  .crm-mobile-card__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+
+  .crm-mobile-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .crm-mobile-card__date {
+    font-size: 0.75rem;
+    color: var(--crm-text-muted);
+    white-space: nowrap;
+  }
+
+  .crm-mobile-card__desc {
+    font-size: 0.85rem;
+    color: var(--crm-text);
+    overflow-wrap: anywhere;
   }
 }
