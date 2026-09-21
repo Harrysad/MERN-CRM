@@ -12,12 +12,23 @@
   left: 0;
   width: 100%;
   height: var(--crm-navbar-h);
-  background: var(--crm-dark);
+  background: transparent;
   display: flex;
   align-items: center;
   padding: 0 1.5rem;
   z-index: 1000;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.crm-navbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--crm-nav-glass);
+  -webkit-backdrop-filter: blur(var(--crm-glass-blur)) saturate(140%);
+  backdrop-filter: blur(var(--crm-glass-blur)) saturate(140%);
+  border-bottom: 1px solid var(--crm-nav-border);
 }
 
 .crm-navbar__brand {
@@ -155,6 +166,18 @@
 /* ── Main content ── */
 body.logged-in {
   padding-top: var(--crm-navbar-h);
+}
+
+body.logged-in::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(55rem 38rem at 8% -8%, var(--crm-glow-1), transparent 60%),
+    radial-gradient(48rem 34rem at 100% 5%, var(--crm-glow-2), transparent 58%),
+    radial-gradient(50rem 36rem at 55% 115%, var(--crm-glow-1), transparent 60%);
 }
 
 .main-content {
@@ -542,6 +565,11 @@ body.logged-in {
   outline: none;
 }
 
+.crm-select__control option {
+  background: var(--crm-card-solid);
+  color: var(--crm-text);
+}
+
 .crm-select:focus-within,
 .crm-toolbar__order:focus-visible {
   border-color: var(--crm-primary);
@@ -829,6 +857,31 @@ body.login-page {
   color: #fff;
 }
 
+/* ── Glass surfaces ── */
+.crm-card,
+.form-card,
+.stat-card,
+.customer-info-card {
+  border-color: var(--crm-glass-border);
+  box-shadow: var(--crm-glass-shadow);
+  -webkit-backdrop-filter: blur(var(--crm-glass-blur)) saturate(140%);
+  backdrop-filter: blur(var(--crm-glass-blur)) saturate(140%);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .crm-navbar::before {
+    background: var(--crm-dark);
+  }
+
+  .crm-card,
+  .form-card,
+  .stat-card,
+  .customer-info-card {
+    background: var(--crm-card-solid);
+  }
+}
+
+
 /* ── Mobile menu items ── */
 .crm-navbar__link--mobile,
 .crm-navbar__menu-divider {
@@ -928,7 +981,7 @@ button.crm-navbar__link {
 
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .crm-navbar__nav.open {
-      background: var(--crm-card);
+      background: var(--crm-card-solid);
     }
   }
 }
