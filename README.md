@@ -18,10 +18,10 @@ Test credentials:
 - ⏱️ Automatic logout after 5 minutes of inactivity, with a warning modal one minute before the session expires
 - 👤 Customer management: create, view, edit, delete
 - 📋 Interaction log per customer (calls, meetings, emails, video calls)
-- 🔎 Search by company name, NIP or city (debounced, case-insensitive, handled server-side)
-- ↕️ Paginated and sortable customer list
-- 🌗 Light/dark theme: follows the system preference by default, with a manual toggle remembered between visits
-- 📱 Responsive layout: the customer table turns into a card list on small screens
+- 🔎 Search by company name, NIP or city (debounced, case-insensitive, handled server-side) from a pill-style search bar with a clear button
+- ↕️ Paginated and sortable customer list, with a selectable page size (5 / 10 / 25 / 50) remembered between visits
+- 🌗 Light/dark theme: follows the system preference by default, with a manual toggle remembered between visits; frosted-glass surfaces over a soft gradient background
+- 📱 Responsive layout: the customer table turns into a card list on small screens, and the theme toggle and logout move into the burger menu
 
 ## Tech Stack
 
@@ -60,10 +60,10 @@ mern-crm/
     │   ├── apiService/           # Axios clients (user, customer, action)
     │   ├── components/           # pages and UI components
     │   │   └── modals/           # delete, action form, session-timeout modals
-    │   ├── hooks/                # useInactivityLogout, useDebouncedValue, useTheme
+    │   ├── hooks/                # useInactivityLogout, useDebouncedValue, useTheme, usePageSize
     │   ├── helpers/              # formatting and cookie helpers
     │   ├── App.jsx               # routing, navbar, session handling
-    │   └── index.css, App.css    # design system (CSS variables, light/dark themes)
+    │   └── index.css, App.css    # design system (CSS variables, light/dark themes, glass surfaces)
     └── tests/                    # Vitest + Testing Library, mirrors src/
         └── src/
             ├── components/
@@ -124,7 +124,7 @@ All endpoints except `/auth/*` require the JWT in the `Authorization` header.
 | POST | `/auth/signup` | Register a user |
 | POST | `/auth/login` | Log in, returns a JWT |
 | POST | `/auth/logout` | Log out |
-| GET | `/customers` | List customers. Query: `page`, `limit`, `sort`, `order`, `search` |
+| GET | `/customers` | List customers. Query: `page`, `limit` (max 100), `sort`, `order`, `search` |
 | GET | `/customers/:id` | Get one customer |
 | POST | `/customers/add` | Create a customer |
 | PUT | `/customers/edit/:id` | Update a customer |
@@ -144,7 +144,7 @@ cd backend && npm test
 cd frontend && npm test -- run
 ```
 
-Backend tests run against an in-memory MongoDB, so no database is needed. Frontend tests cover the custom hooks (session timeout, debounce, theme), formatting helpers and the pagination component.
+Backend tests run against an in-memory MongoDB, so no database is needed. Frontend tests cover the custom hooks (session timeout, debounce, theme, page size), formatting helpers and the pagination and toolbar components.
 
 ## CI/CD
 
