@@ -14,13 +14,13 @@ import { deleteCookie, getCookie } from "./helpers/helpers";
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { useTheme } from "./hooks/useTheme";
+import { usePageSize } from "./hooks/usePageSize";
 
 const ProtectedRoute = ({ user, children }) => {
   if (!user) return <Navigate to="/home" replace />;
   return children;
 };
 
-const CUSTOMER_DATA_LIMIT = 7;
 const SESSION_WARNING_MS = 4 * 60 * 1000;
 const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
 const SESSION_WARNING_SECONDS = (SESSION_TIMEOUT_MS - SESSION_WARNING_MS) / 1000;
@@ -49,12 +49,13 @@ function App() {
   const [sortOrder, setSortOrder] = useState("asc");
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebouncedValue(searchTerm, 300);
+  const {pageSize, setPageSize} = usePageSize();
 
   const handleSortChange = (e) => setSortField(e.target.value);
   const toggleSortOrder = () =>
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
 
-  const handleGetCustomers = (page = currentPage, limit = CUSTOMER_DATA_LIMIT) => {
+  const handleGetCustomers = (page = currentPage, limit = pageSize) => {
     getCustomers(page, limit, sortField, sortOrder, debouncedSearch).then((res) => {
       setCustomers(res.data);
       setTotalCustomers(res.total);
@@ -64,7 +65,7 @@ function App() {
 
   useEffect(() => {
     if (user) handleGetCustomers(1);
-  }, [user, sortField, sortOrder, debouncedSearch]);
+  }, [user, sortField, sortOrder, debouncedSearch, pageSize]);
 
   const handleLogOut = useCallback(
     (e) => {
@@ -185,9 +186,11 @@ function App() {
                   sortOrder={sortOrder}
                   searchTerm={searchTerm}
                   onSearchChange={setSearchTerm}
+                  pageSize={pageSize}
+                  onPageSizeChange={setPageSize}
                 />
                 <Pagination
-                  dataPerPage={CUSTOMER_DATA_LIMIT}
+                  dataPerPage={pageSize}
                   totalData={totalCustomers}
                   currentPage={currentPage}
                   paginate={(page) => handleGetCustomers(page)}

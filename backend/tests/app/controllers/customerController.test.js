@@ -194,3 +194,24 @@ describe("GET /customers?search=", () => {
     expect(res.body.total).toBe(0);
   });
 });
+
+describe("GET /customers pagination limits", () => {
+  it("caps the page size at 100", async () => {
+    const res = await request(app).get("/customers?limit=1000").set("Authorization", token);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.limit).toBe(100);
+  });
+
+  it("falls back to the default page size for invalid values", async () => {
+    const negative = await request(app).get("/customers?limit=-5").set("Authorization", token);
+    const text = await request(app).get("/customers?limit=abc").set("Authorization", token);
+    expect(negative.body.limit).toBe(10);
+    expect(text.body.limit).toBe(10);
+  });
+
+  it("falls back to the first page for invalid page numbers", async () => {
+    const res = await request(app).get("/customers?page=-3").set("Authorization", token);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.page).toBe(1);
+  });
+});

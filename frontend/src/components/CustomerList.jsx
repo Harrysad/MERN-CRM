@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { deleteCustomer } from "../apiService/customer/apiCustomer";
 import { formatZipCode, formatNipCode } from "../helpers/helpers";
 import DeleteModal from "./modals/DeleteModal";
+import CustomerToolbar from "./CustomerToolbar";
 
 const CustomerList = ({
   customers,
@@ -14,6 +15,8 @@ const CustomerList = ({
   sortOrder,
   searchTerm,
   onSearchChange,
+  pageSize,
+  onPageSizeChange,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
@@ -56,34 +59,17 @@ const CustomerList = ({
 
       <div className="crm-card mb-3">
         <div className="crm-card__header">
-          <div className="sort-toolbar">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Szukaj po nazwie, NIP lub mieście..."
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-              style={{ maxWidth: 280 }}
-              aria-label="Szukaj klientów"
+          <div className="crm-card__header">
+            <CustomerToolbar
+              searchTerm={searchTerm}
+              onSearchChange={onSearchChange}
+              sortField={sortField}
+              onSortChange={handleSortChange}
+              sortOrder={sortOrder}
+              onToggleSortOrder={toggleSortOrder}
+              pageSize={pageSize}
+              onPageSizeChange={onPageSizeChange}
             />
-            <label htmlFor="sortSelect">
-              <i className="fa-solid fa-arrow-up-wide-short me-1"></i>
-              Sortuj według:
-            </label>
-            <select
-              id="sortSelect"
-              className="form-select"
-              value={sortField}
-              onChange={handleSortChange}
-            >
-              <option value="name">Nazwa firmy</option>
-              <option value="address.postcode">Kod pocztowy</option>
-              <option value="nip">NIP</option>
-            </select>
-            <button className="btn-sort-order" onClick={toggleSortOrder}>
-              <i className={`fa-solid fa-arrow-${sortOrder === "asc" ? "up" : "down"}`}></i>
-              {sortOrder === "asc" ? "Rosnąco" : "Malejąco"}
-            </button>
           </div>
         </div>
 
