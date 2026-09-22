@@ -1073,6 +1073,10 @@ button.crm-navbar__link {
     flex-shrink: 0;
   }
 
+  .crm-mobile-card__info {
+    min-width: 0;
+  }
+
   .crm-mobile-card__name {
     font-weight: 600;
     color: var(--crm-text);

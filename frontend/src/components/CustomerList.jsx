@@ -165,7 +165,7 @@ const CustomerList = ({
                   <div className="crm-mobile-card__avatar">
                     {row.name.charAt(0).toUpperCase()}
                   </div>
-                  <div>
+                  <div className="crm-mobile-card__info">
                     <div className="crm-mobile-card__name">{row.name}</div>
                     <div className="crm-mobile-card__nip">{formatNipCode(row.nip)}</div>
                   </div>
