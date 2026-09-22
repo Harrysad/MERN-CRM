@@ -1,29 +1,35 @@
 const Customer = require("../models/CustomerModel");
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 10;
-
-const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 module.exports = {
   index: (req, res) => {
     const requestedPage = parseInt(req.query.page);
     const requestedLimit = parseInt(req.query.limit);
     const page = requestedPage > 0 ? requestedPage : 1;
-    const limit = requestedLimit > 0 ? Math.min(requestedLimit, MAX_LIMIT) : DEFAULT_LIMIT;
+    const limit =
+      requestedLimit > 0 ? Math.min(requestedLimit, MAX_LIMIT) : DEFAULT_LIMIT;
     const sortField = req.query.sort || "name";
     const sortOrder = req.query.order === "desc" ? -1 : 1;
     const search = req.query.search?.trim();
 
-    const filter = search
-      ? {
-        $or: [
-          { name: { $regex: escapeRegex(search), $options: "i" } },
-          { "address.city": { $regex: escapeRegex(search), $options: "i" } },
-          { nip: { $regex: escapeRegex(search), $options: "i" } },
-        ],
-      }
-      : {};
+    const filter = {
+      owner: req.userId,
+      ...(search
+        ? {
+            $or: [
+              { name: { $regex: escapeRegex(search), $options: "i" } },
+              {
+                "address.city": { $regex: escapeRegex(search), $options: "i" },
+              },
+              { nip: { $regex: escapeRegex(search), $options: "i" } },
+            ],
+          }
+        : {}),
+    };
 
     const startIndex = (page - 1) * limit;
 
@@ -59,9 +65,14 @@ module.exports = {
       });
   },
   customer: (req, res) => {
-    Customer.findById(req.params.id)
+    Customer.findOne({ _id: req.params.id, owner: req.userId })
       .lean()
       .then((customer) => {
+        if (!customer) {
+          return res.status(404).json({
+            error: "Customer not found.",
+          });
+        }
         delete customer.actions;
         res.status(200).json(customer);
       })
@@ -72,7 +83,7 @@ module.exports = {
       });
   },
   create: (req, res) => {
-    const newCustomer = new Customer(req.body);
+    const newCustomer = new Customer({ ...req.body, owner: req.userId });
     newCustomer
       .save()
       .then(() => {
@@ -84,15 +95,22 @@ module.exports = {
       })
       .catch((err) => {
         if (err.code === 11000) {
-          res.status(409).json({
+          return res.status(409).json({
             error: true,
-            message: "User already exist.",
+            message: "Customer with this NIP already exists.",
           });
         }
+        res.status(400).json({
+          error: true,
+          message: "Could not create customer.",
+        });
       });
   },
   update: (req, res) => {
-    Customer.findByIdAndUpdate(req.params.id, req.body)
+    Customer.findOneAndUpdate(
+      { _id: req.params.id, owner: req.userId },
+      req.body,
+    )
       .then((customer) => {
         if (!customer) {
           return res.status(404).json({
@@ -110,7 +128,7 @@ module.exports = {
       });
   },
   delete: (req, res) => {
-    Customer.findByIdAndDelete(req.params.id)
+    Customer.findOneAndDelete({ _id: req.params.id, owner: req.userId })
       .then((customer) => {
         if (!customer) {
           return res.status(404).json({

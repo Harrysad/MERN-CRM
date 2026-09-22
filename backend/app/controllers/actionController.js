@@ -9,7 +9,9 @@ module.exports = {
 
     const startIndex = (page - 1) * limit;
 
-    Action.countDocuments({ customer: customerId })
+    const filter = { customer: customerId, owner: req.userId };
+
+    Action.countDocuments(filter)
       .then((totalActions) => {
         Action.find({ customer: customerId })
           .populate("customer", "name")
@@ -53,7 +55,7 @@ module.exports = {
           .then(() => {
             return Customer.updateOne(
               { _id: customer },
-              { $push: { actions: newAction._id } }
+              { $push: { actions: newAction._id } },
             );
           })
           .then(() => {
@@ -87,7 +89,7 @@ module.exports = {
           return res.status(404).json({ message: "Action not found" });
         Customer.updateOne(
           { _id: action.customer },
-          { $pull: { actions: action._id } }
+          { $pull: { actions: action._id } },
         ).catch((err) => {
           res.status(err);
         });

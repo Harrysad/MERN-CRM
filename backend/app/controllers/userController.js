@@ -49,6 +49,7 @@ module.exports = {
             res.status(200).json({
               name: user.name,
               jwt: token,
+              role: user.role,
             });
           } else {
             res.status(400).json({
