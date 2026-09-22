@@ -9,9 +9,11 @@ module.exports = {
 
     const startIndex = (page - 1) * limit;
 
-    Action.countDocuments({ customer: customerId })
+    const filter = { customer: customerId, owner: req.userId };
+
+    Action.countDocuments(filter)
       .then((totalActions) => {
-        Action.find({ customer: customerId })
+        Action.find(filter)
           .populate("customer", "name")
           .skip(startIndex)
           .limit(limit)
@@ -40,20 +42,24 @@ module.exports = {
         .status(400)
         .json({ message: "Customer ID is required to create an action" });
     }
-    Customer.findById(customer)
+    Customer.findOne({ _id: customer, owner: req.userId })
       .then((customer) => {
         if (!customer) {
           return res
             .status(404)
             .json({ message: "Customer not found, cannot create an action" });
         }
-        const newAction = new Action({ ...req.body, customer: customer });
+        const newAction = new Action({
+          ...req.body,
+          customer: customer,
+          owner: req.userId,
+        });
         newAction
           .save()
           .then(() => {
             return Customer.updateOne(
               { _id: customer },
-              { $push: { actions: newAction._id } }
+              { $push: { actions: newAction._id } },
             );
           })
           .then(() => {
@@ -68,7 +74,10 @@ module.exports = {
       });
   },
   update: (req, res) => {
-    Action.findByIdAndUpdate(req.params.id, req.body)
+    Action.findOneAndUpdate(
+      { _id: req.params.id, owner: req.userId },
+      req.body,
+    )
       .then((action) => {
         if (!action)
           return res.status(404).json({ message: "Action not found" });
@@ -81,20 +90,23 @@ module.exports = {
       });
   },
   delete: (req, res) => {
-    Action.findByIdAndDelete(req.params.id)
+    Action.findOneAndDelete({ _id: req.params.id, owner: req.userId })
       .then((action) => {
         if (!action)
           return res.status(404).json({ message: "Action not found" });
         Customer.updateOne(
           { _id: action.customer },
-          { $pull: { actions: action._id } }
-        ).catch((err) => {
-          res.status(err);
-        });
-        res.status(200).json({
-          message: "Action deleted",
-          deleted: true,
-        });
+          { $pull: { actions: action._id } },
+        )
+          .then(() => {
+            res.status(200).json({
+              message: "Action deleted",
+              deleted: true,
+            });
+          })
+          .catch((err) => {
+            res.status(500).json({ error: err });
+          });
       })
       .catch((err) => {
         res.status(500).json({ error: err });

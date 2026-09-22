@@ -9,6 +9,9 @@ async function connect() {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
+  await Promise.all(
+    mongoose.modelNames().map((name) => mongoose.model(name).init()),
+  );
 }
 
 async function closeDatabase() {

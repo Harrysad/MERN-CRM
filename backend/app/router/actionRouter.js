@@ -2,10 +2,11 @@ const express = require("express");
 const router = express.Router();
 
 const actionController = require("../controllers/actionController");
+const requireWriteAccess = require("../middlewares/requireWriteAccess");
 
 router.get("/:customerId", actionController.index); //!!!!
-router.post("/add", actionController.create);
-router.put("/edit/:id", actionController.update);
-router.delete("/delete/:id", actionController.delete);
+router.post("/add", requireWriteAccess, actionController.create);
+router.put("/edit/:id", requireWriteAccess, actionController.update);
+router.delete("/delete/:id", requireWriteAccess, actionController.delete);
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const Action = new mongoose.Schema({
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true},
   type: {
     type: String,
     required: true,

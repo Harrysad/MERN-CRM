@@ -7,10 +7,11 @@ const User = new mongoose.Schema(
     name: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    role: { type: String, emun: ["admin", "viewer"], default: "admin" },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 User.pre("save", function (next) {
@@ -37,7 +38,11 @@ User.pre("save", function (next) {
 });
 
 User.methods.generateAuthToken = (user) => {
-  const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+  const token = jwt.sign(
+    { _id: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "1h" },
+  );
   return token;
 };
 

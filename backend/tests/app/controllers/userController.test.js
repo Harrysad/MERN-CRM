@@ -61,6 +61,7 @@ describe("POST /auth/login", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.jwt).toBeDefined();
+    expect(res.body.role).toBe("admin");
   });
 
   it("rejects an incorrect password", async () => {

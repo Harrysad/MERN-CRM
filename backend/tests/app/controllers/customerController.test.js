@@ -1,4 +1,5 @@
 const request = require("supertest");
+const jwt = require("jsonwebtoken");
 const app = require("../../../app");
 const { connect, closeDatabase, clearDatabase } = require("../../setup");
 
@@ -62,7 +63,10 @@ describe("POST /customers/add", () => {
   });
 
   it("rejects a duplicate NIP", async () => {
-    await request(app).post("/customers/add").set("Authorization", token).send(sampleCustomer);
+    await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send(sampleCustomer);
 
     const res = await request(app)
       .post("/customers/add")
@@ -75,9 +79,14 @@ describe("POST /customers/add", () => {
 
 describe("GET /customers", () => {
   it("returns a paginated list", async () => {
-    await request(app).post("/customers/add").set("Authorization", token).send(sampleCustomer);
+    await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send(sampleCustomer);
 
-    const res = await request(app).get("/customers").set("Authorization", token);
+    const res = await request(app)
+      .get("/customers")
+      .set("Authorization", token);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.data).toHaveLength(1);
@@ -87,11 +96,18 @@ describe("GET /customers", () => {
 
 describe("GET /customers/:id", () => {
   it("returns a single customer", async () => {
-    await request(app).post("/customers/add").set("Authorization", token).send(sampleCustomer);
-    const listRes = await request(app).get("/customers").set("Authorization", token);
+    await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send(sampleCustomer);
+    const listRes = await request(app)
+      .get("/customers")
+      .set("Authorization", token);
     const customerId = listRes.body.data[0]._id;
 
-    const res = await request(app).get(`/customers/${customerId}`).set("Authorization", token);
+    const res = await request(app)
+      .get(`/customers/${customerId}`)
+      .set("Authorization", token);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.nip).toBe(sampleCustomer.nip);
@@ -108,8 +124,13 @@ describe("GET /customers/:id", () => {
 
 describe("PUT /customers/edit/:id", () => {
   it("updates an existing customer", async () => {
-    await request(app).post("/customers/add").set("Authorization", token).send(sampleCustomer);
-    const listRes = await request(app).get("/customers").set("Authorization", token);
+    await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send(sampleCustomer);
+    const listRes = await request(app)
+      .get("/customers")
+      .set("Authorization", token);
     const customerId = listRes.body.data[0]._id;
 
     const res = await request(app)
@@ -123,8 +144,13 @@ describe("PUT /customers/edit/:id", () => {
 
 describe("DELETE /customers/delete/:id", () => {
   it("deletes an existing customer", async () => {
-    await request(app).post("/customers/add").set("Authorization", token).send(sampleCustomer);
-    const listRes = await request(app).get("/customers").set("Authorization", token);
+    await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send(sampleCustomer);
+    const listRes = await request(app)
+      .get("/customers")
+      .set("Authorization", token);
     const customerId = listRes.body.data[0]._id;
 
     const res = await request(app)
@@ -160,35 +186,43 @@ describe("GET /customers?search=", () => {
           street: "One Microsoft Way",
           suite: "2",
           city: "Redmond",
-        postcode: "98052",
-      },
-      nip: "0987654321",
-    });
+          postcode: "98052",
+        },
+        nip: "0987654321",
+      });
   });
 
   it("finds a customer by partial name match (case-insensitive)", async () => {
-    const res = await request(app).get("/customers?search=google").set("Authorization", token);
+    const res = await request(app)
+      .get("/customers?search=google")
+      .set("Authorization", token);
     expect(res.statusCode).toBe(200);
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].name).toBe("Google LLC");
   });
 
   it("finds a customer by NIP", async () => {
-    const res = await request(app).get("/customers?search=0987654321").set("Authorization", token)
+    const res = await request(app)
+      .get("/customers?search=0987654321")
+      .set("Authorization", token);
     expect(res.statusCode).toBe(200);
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].name).toBe("Microsoft Corporation");
   });
 
   it("finds a customer by city", async () => {
-    const res = await request(app).get("/customers?search=redmond").set("Authorization", token)
+    const res = await request(app)
+      .get("/customers?search=redmond")
+      .set("Authorization", token);
     expect(res.statusCode).toBe(200);
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].name).toBe("Microsoft Corporation");
   });
 
   it("returns an empty list if no matches are found", async () => {
-    const res = await request(app).get("/customers?search=nonexistent").set("Authorization", token);
+    const res = await request(app)
+      .get("/customers?search=nonexistent")
+      .set("Authorization", token);
     expect(res.statusCode).toBe(200);
     expect(res.body.data).toHaveLength(0);
     expect(res.body.total).toBe(0);
@@ -197,21 +231,172 @@ describe("GET /customers?search=", () => {
 
 describe("GET /customers pagination limits", () => {
   it("caps the page size at 100", async () => {
-    const res = await request(app).get("/customers?limit=1000").set("Authorization", token);
+    const res = await request(app)
+      .get("/customers?limit=1000")
+      .set("Authorization", token);
     expect(res.statusCode).toBe(200);
     expect(res.body.limit).toBe(100);
   });
 
   it("falls back to the default page size for invalid values", async () => {
-    const negative = await request(app).get("/customers?limit=-5").set("Authorization", token);
-    const text = await request(app).get("/customers?limit=abc").set("Authorization", token);
+    const negative = await request(app)
+      .get("/customers?limit=-5")
+      .set("Authorization", token);
+    const text = await request(app)
+      .get("/customers?limit=abc")
+      .set("Authorization", token);
     expect(negative.body.limit).toBe(10);
     expect(text.body.limit).toBe(10);
   });
 
   it("falls back to the first page for invalid page numbers", async () => {
-    const res = await request(app).get("/customers?page=-3").set("Authorization", token);
+    const res = await request(app)
+      .get("/customers?page=-3")
+      .set("Authorization", token);
     expect(res.statusCode).toBe(200);
     expect(res.body.page).toBe(1);
+  });
+});
+
+describe("Data isolation between accounts", () => {
+  let otherToken;
+
+  beforeEach(async () => {
+    await request(app).post("/auth/signup").send({
+      name: "Inny Uzytkownik",
+      email: "inny@example.com",
+      password: "password123",
+    });
+
+    const loginRes = await request(app).post("/auth/login").send({
+      email: "inny@example.com",
+      password: "password123",
+    });
+
+    otherToken = loginRes.body.jwt;
+  });
+
+  it("allows two different accounts to use the same NIP", async () => {
+    const first = await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send(sampleCustomer);
+
+    const second = await request(app)
+      .post("/customers/add")
+      .set("Authorization", otherToken)
+      .send(sampleCustomer);
+
+    expect(first.statusCode).toBe(201);
+    expect(second.statusCode).toBe(201);
+  });
+
+  it("does not show another account's customer in the list", async () => {
+    await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send(sampleCustomer);
+
+    const res = await request(app)
+      .get("/customers")
+      .set("Authorization", otherToken);
+
+    expect(res.body.data).toHaveLength(0);
+  });
+
+  it("returns 404 when fetching another account's customer by id", async () => {
+    await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send(sampleCustomer);
+    const listRes = await request(app)
+      .get("/customers")
+      .set("Authorization", token);
+    const customerId = listRes.body.data[0]._id;
+
+    const res = await request(app)
+      .get(`/customers/${customerId}`)
+      .set("Authorization", otherToken);
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("does not allow editing another account's customer", async () => {
+    await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send(sampleCustomer);
+    const listRes = await request(app)
+      .get("/customers")
+      .set("Authorization", token);
+    const customerId = listRes.body.data[0]._id;
+
+    const res = await request(app)
+      .put(`/customers/edit/${customerId}`)
+      .set("Authorization", otherToken)
+      .send({ name: "Podmienione" });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("does not allow deleting another account's customer", async () => {
+    await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send(sampleCustomer);
+    const listRes = await request(app)
+      .get("/customers")
+      .set("Authorization", token);
+    const customerId = listRes.body.data[0]._id;
+
+    const res = await request(app)
+      .delete(`/customers/delete/${customerId}`)
+      .set("Authorization", otherToken);
+
+    expect(res.statusCode).toBe(404);
+  });
+});
+
+describe("Read-only role", () => {
+  let viewerToken;
+
+  beforeAll(() => {
+    viewerToken = jwt.sign(
+      { _id: "000000000000000000000001", role: "viewer" },
+      process.env.JWT_SECRET,
+    );
+  });
+
+  it("allows a viewer to read the customer list", async () => {
+    const res = await request(app)
+      .get("/customers")
+      .set("Authorization", viewerToken);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("blocks a viewer from creating a customer", async () => {
+    const res = await request(app)
+      .post("/customers/add")
+      .set("Authorization", viewerToken)
+      .send(sampleCustomer);
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("blocks a viewer from updating a customer", async () => {
+    const res = await request(app)
+      .put("/customers/edit/000000000000000000000002")
+      .set("Authorization", viewerToken)
+      .send({ name: "x" });
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("blocks a viewer from deleting a customer", async () => {
+    const res = await request(app)
+      .delete("/customers/delete/000000000000000000000002")
+      .set("Authorization", viewerToken);
+
+    expect(res.statusCode).toBe(403);
   });
 });
