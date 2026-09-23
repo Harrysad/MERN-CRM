@@ -1,7 +1,7 @@
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
 const app = require("../../../app");
-const { connect, closeDatabase, clearDatabase } = require("../../setup");
+const { connect, closeDatabase, clearDatabase, verifyUser } = require("../../setup");
 
 let token;
 
@@ -23,6 +23,8 @@ beforeEach(async () => {
     email: "jan@example.com",
     password: "password123",
   });
+
+  await verifyUser("jan@example.com");
 
   const loginRes = await request(app).post("/auth/login").send({
     email: "jan@example.com",
@@ -268,6 +270,8 @@ describe("Data isolation between accounts", () => {
       password: "password123",
     });
 
+    await verifyUser("inny@example.com");
+
     const loginRes = await request(app).post("/auth/login").send({
       email: "inny@example.com",
       password: "password123",
@@ -396,6 +400,38 @@ describe("Read-only role", () => {
     const res = await request(app)
       .delete("/customers/delete/000000000000000000000002")
       .set("Authorization", viewerToken);
+
+    expect(res.statusCode).toBe(403);
+  });
+});
+
+describe("Unverified account", () => {
+  let unverifiedToken;
+
+  beforeEach(async () => {
+    await request(app).post("/auth/signup").send({
+      name: "Nowy Uzytkownik",
+      email: "nowy@example.com",
+      password: "password123",
+    });
+
+    const loginRes = await request(app).post("/auth/login").send({
+      email: "nowy@example.com",
+      password: "password123",
+    });
+    unverifiedToken = loginRes.body.jwt;
+  });
+
+  it("allows an unverified account to read the customer list", async () => {
+    const res = await request(app).get("/customers").set("Authorization", unverifiedToken);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("blocks an unverified account from creating a customer", async () => {
+    const res = await request(app)
+      .post("/customers/add")
+      .set("Authorization", unverifiedToken)
+      .send(sampleCustomer);
 
     expect(res.statusCode).toBe(403);
   });

@@ -1,7 +1,7 @@
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
 const app = require("../../../app");
-const { connect, closeDatabase, clearDatabase } = require("../../setup");
+const { connect, closeDatabase, clearDatabase, verifyUser } = require("../../setup");
 
 let token;
 let customerId;
@@ -24,6 +24,8 @@ beforeEach(async () => {
     email: "jan@example.com",
     password: "password123",
   });
+  
+  await verifyUser("jan@example.com");
 
   const loginRes = await request(app).post("/auth/login").send({
     email: "jan@example.com",
@@ -68,6 +70,7 @@ describe("POST /actions/add", () => {
       email: "inny@example.com",
       password: "password123",
     });
+    await verifyUser("inny@example.com");
     const otherLogin = await request(app).post("/auth/login").send({
       email: "inny@example.com",
       password: "password123",
