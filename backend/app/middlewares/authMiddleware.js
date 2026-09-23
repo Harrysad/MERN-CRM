@@ -7,6 +7,7 @@ module.exports = (req, res, next) => {
       const verified = jwt.verify(token, process.env.JWT_SECRET);
       req.userId = verified._id;
       req.userRole = verified.role;
+      req.userVerified = verified.verified;
       next();
     } catch (err) {
       res.status(400).json({

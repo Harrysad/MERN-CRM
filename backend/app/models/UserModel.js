@@ -7,7 +7,9 @@ const User = new mongoose.Schema(
     name: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, emun: ["admin", "viewer"], default: "admin" },
+    role: { type: String, enum: ["admin", "viewer"], default: "admin" },
+    verified: {type: Boolean, default: true},
+    verificationTokenHash: {type: String, default: null},
   },
   {
     timestamps: true,
@@ -39,7 +41,7 @@ User.pre("save", function (next) {
 
 User.methods.generateAuthToken = (user) => {
   const token = jwt.sign(
-    { _id: user._id, role: user.role },
+    { _id: user._id, role: user.role, verified: user.verified },
     process.env.JWT_SECRET,
     { expiresIn: "1h" },
   );
