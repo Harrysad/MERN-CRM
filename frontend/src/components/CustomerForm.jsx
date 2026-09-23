@@ -3,12 +3,14 @@ import { useNavigate, useParams, NavLink } from "react-router-dom";
 import FloatingLabel from "react-bootstrap/FloatingLabel";
 import { FormControl } from "react-bootstrap";
 import { addCustomer, getCustomer, updateCustomer } from "../apiService/customer/apiCustomer";
+import { lookupNip } from "../apiService/nip/apiNip";
 import { extractCodeNumbers, formatNipCode, formatZipCode } from "../helpers/helpers";
 
 const CustomerForm = ({ getCustomers, isViewer }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const [nipLoading, setNipLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -46,6 +48,36 @@ const CustomerForm = ({ getCustomers, isViewer }) => {
       setFormData((prev) => ({ ...prev, nip: formatNipCode(value) }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleNipLookup = async () => {
+    const nip = extractCodeNumbers(formData.nip);
+    if (nip.length !== 10) {
+      setError("Podaj poprawny, 10-cyfrowy NIP przed wyszukaniem.");
+      return;
+    }
+    setError("");
+    setNipLoading(true);
+    try {
+      const data = await lookupNip(nip);
+      setFormData((prev) => ({
+        ...prev,
+        name: data.name,
+        address: {
+          street: data.address.street,
+          suite: data.address.suite,
+          city: data.address.city,
+          postcode: formatZipCode(data.address.postcode),
+        },
+      }));
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+        "Nie udało się pobrać danych firmy. Spróbuj ponownie później."
+      );
+    } finally {
+      setNipLoading(false);
     }
   };
 
@@ -116,16 +148,40 @@ const CustomerForm = ({ getCustomers, isViewer }) => {
               />
             </FloatingLabel>
 
-            <FloatingLabel label="NIP" className="mb-4">
-              <FormControl
-                type="text"
-                name="nip"
-                value={formData.nip}
-                onChange={handleChange}
-                placeholder="NIP"
-                required
-              />
-            </FloatingLabel>
+            <div className="d-flex gap-2 align-items-start mb-4">
+              <div className="flex-grow-1">
+                <FloatingLabel label="NIP">
+                  <FormControl
+                    type="text"
+                    name="nip"
+                    value={formData.nip}
+                    onChange={handleChange}
+                    placeholder="NIP"
+                    required
+                  />
+                </FloatingLabel>
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline-primary"
+                style={{ height: 58 }}
+                onClick={handleNipLookup}
+                disabled={nipLoading}
+              >
+                {nipLoading ? (
+                  <span className="spinner-border spinner-border-sm"
+                    role="status"
+                    aria-hidden="true"
+                  >
+                  </span>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-magnifying-glass me-1"></i>
+                    Wyszukaj dane firmy
+                  </>
+                )}
+              </button>
+            </div>
 
             <div className="form-section-label">Adres</div>
 
