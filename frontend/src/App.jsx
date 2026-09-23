@@ -7,10 +7,11 @@ import { logOutUser } from "./apiService/user/apiUser";
 import CustomerDetails from "./components/CustomerDetails";
 import CustomerForm from "./components/CustomerForm";
 import CustomerList from "./components/CustomerList";
+import VerifyEmail from "./components/VerifyEmail";
 import { SignUpSignIn } from "./components/SignUpSignIn";
 import Pagination from "./components/Pagination";
 import SessionTimeoutModal from "./components/modals/SessionTimeoutModal";
-import { deleteCookie, getCookie } from "./helpers/helpers";
+import { deleteCookie, getCookie, getWriteBlockMessage } from "./helpers/helpers";
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { useTheme } from "./hooks/useTheme";
@@ -28,6 +29,8 @@ const SESSION_WARNING_SECONDS = (SESSION_TIMEOUT_MS - SESSION_WARNING_MS) / 1000
 function App() {
   const [user, setUser] = useState(JSON.parse(getCookie("user") || "null"));
   const isViewer = user?.role === "viewer";
+  const isVerified = user?.role === "viewer";
+  const writeBlockMessage = getWriteBlockMessage(isViewer, isVerified)
   const [menuOpen, setMenuOpen] = useState(false);
   const [showSessionWarning, setShowSessionWarning] = useState(false);
   const navigate = useNavigate();
@@ -170,15 +173,16 @@ function App() {
         onLogout={handleLogOut}
       />
 
-      {user && isViewer && (
+      {user && writeBlockMessage && (
         <div className="alert alert-warning crm-viewer-banner mb-0 d-flex align-items-center justify-content-center gap-2" role="alert">
           <i className="fa-solid fa-circle-info"></i>
-          Konto demo jest tylko do odczytu — możesz przeglądać i testować formularze, ale żadne zmiany nie zostaną zapisane.
+          {writeBlockMessage}
         </div>
       )}
 
       <Routes>
         <Route path="/Home" element={<SignUpSignIn setUser={setUser} />} />
+        <Route path="/verify/:token" element={<VerifyEmail />} />
         <Route
           path="/"
           element={
@@ -197,6 +201,7 @@ function App() {
                   pageSize={pageSize}
                   onPageSizeChange={setPageSize}
                   isViewer={isViewer}
+                  isVerified={isVerified}
                 />
                 <Pagination
                   dataPerPage={pageSize}
@@ -213,7 +218,10 @@ function App() {
           element={
             <ProtectedRoute user={user}>
               <div className="main-content">
-                <CustomerForm getCustomers={handleGetCustomers} isViewer={isViewer} />
+                <CustomerForm
+                  getCustomers={handleGetCustomers}
+                  isViewer={isViewer}
+                  isVerified={isVerified} />
               </div>
             </ProtectedRoute>
           }
@@ -223,7 +231,10 @@ function App() {
           element={
             <ProtectedRoute user={user}>
               <div className="main-content">
-                <CustomerForm getCustomers={handleGetCustomers} isViewer={isViewer} />
+                <CustomerForm
+                  getCustomers={handleGetCustomers}
+                  isViewer={isViewer}
+                  isVerified={isVerified} />
               </div>
             </ProtectedRoute>
           }
@@ -233,7 +244,10 @@ function App() {
           element={
             <ProtectedRoute user={user}>
               <div className="main-content">
-                <CustomerDetails isViewer={isViewer} />
+                <CustomerDetails
+                  isViewer={isViewer}
+                  isVerified={isVerified}
+                />
               </div>
             </ProtectedRoute>
           }
