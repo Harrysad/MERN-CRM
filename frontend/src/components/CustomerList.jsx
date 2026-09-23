@@ -17,6 +17,7 @@ const CustomerList = ({
   onSearchChange,
   pageSize,
   onPageSizeChange,
+  isViewer,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
@@ -59,16 +60,16 @@ const CustomerList = ({
 
       <div className="crm-card mb-3">
         <div className="crm-card__header">
-            <CustomerToolbar
-              searchTerm={searchTerm}
-              onSearchChange={onSearchChange}
-              sortField={sortField}
-              onSortChange={handleSortChange}
-              sortOrder={sortOrder}
-              onToggleSortOrder={toggleSortOrder}
-              pageSize={pageSize}
-              onPageSizeChange={onPageSizeChange}
-            />
+          <CustomerToolbar
+            searchTerm={searchTerm}
+            onSearchChange={onSearchChange}
+            sortField={sortField}
+            onSortChange={handleSortChange}
+            sortOrder={sortOrder}
+            onToggleSortOrder={toggleSortOrder}
+            pageSize={pageSize}
+            onPageSizeChange={onPageSizeChange}
+          />
         </div>
 
         <div className="crm-table-wrapper" style={{ border: "none", borderRadius: 0, boxShadow: "none" }}>
@@ -208,6 +209,7 @@ const CustomerList = ({
         show={modalVisible}
         onClose={() => setModalVisible(false)}
         onConfirm={handleDelete}
+        isViewer={isViewer}
       />
     </>
   );

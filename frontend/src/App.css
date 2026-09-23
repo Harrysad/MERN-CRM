@@ -205,6 +205,8 @@ body.logged-in::before {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .page-header__title i {
@@ -680,6 +682,7 @@ body.logged-in::before {
   font-weight: 700;
   color: #fff;
   margin-bottom: 0.25rem;
+  overflow-wrap: anywhere;
 }
 
 .customer-info-card__body {
@@ -1128,4 +1131,13 @@ button.crm-navbar__link {
     color: var(--crm-text);
     overflow-wrap: anywhere;
   }
+}
+
+.crm-viewer-banner {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  text-align: center;
+  font-size: 0.875rem;
+  padding: 0.6rem 1rem;
 }

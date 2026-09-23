@@ -11,7 +11,7 @@ import { formatNipCode, formatZipCode } from "../helpers/helpers";
 const ACTION_INIT_FORM_DATA = { type: "", description: "", date: "" };
 const ACTION_DATA_LIMIT = 4;
 
-function CustomerDetails() {
+function CustomerDetails({ isViewer }) {
   const { id } = useParams();
   const [customer, setCustomer] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -161,6 +161,7 @@ function CustomerDetails() {
               handleGetActions={handleGetActions}
               customerName={customer?.name}
               allActions={allActions}
+              isViewer={isViewer}
             />
             <div style={{ padding: "0 0.5rem" }}>
               <Pagination
@@ -181,6 +182,7 @@ function CustomerDetails() {
         value={newAction}
         onConfirm={handleSubmit}
         customerName={customer?.name}
+        isViewer={isViewer}
       />
     </>
   );
