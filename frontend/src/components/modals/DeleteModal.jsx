@@ -1,8 +1,12 @@
 import { Button } from "react-bootstrap";
 import GenericModal from "./GenericModal";
 
-const DeleteModal = ({ show, onClose, onConfirm }) => {
-  const footer = (
+const DeleteModal = ({ show, onClose, onConfirm, isViewer }) => {
+  const footer = isViewer ? (
+    <Button variant="secondary" onClick={onClose}>
+      Zamknij
+    </Button>
+  ) : (
     <>
       <Button variant="secondary" onClick={onClose}>
         Anuluj
@@ -18,7 +22,11 @@ const DeleteModal = ({ show, onClose, onConfirm }) => {
       show={show}
       onClose={onClose}
       title="Potwierdzenie usunięcia"
-      body="Czy na pewno chcesz usunąć?"
+      body={
+        isViewer
+        ? "Konto demo jest tylko do odczytu - usuwanie danych jest wyłączone."
+        : "Czy na pewno chcesz usunąć?"
+      }
       footer={footer}
     />
   );

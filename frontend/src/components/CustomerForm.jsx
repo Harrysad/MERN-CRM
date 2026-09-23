@@ -5,7 +5,7 @@ import { FormControl } from "react-bootstrap";
 import { addCustomer, getCustomer, updateCustomer } from "../apiService/customer/apiCustomer";
 import { extractCodeNumbers, formatNipCode, formatZipCode } from "../helpers/helpers";
 
-const CustomerForm = ({ getCustomers }) => {
+const CustomerForm = ({ getCustomers, isViewer }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [error, setError] = useState("");
@@ -51,6 +51,10 @@ const CustomerForm = ({ getCustomers }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isViewer) {
+      setError("Konto demo jest tylko do odczytu — zmiany nie zostaną zapisane.");
+      return;
+    }
     const postcode = extractCodeNumbers(formData.address.postcode);
     const nip = extractCodeNumbers(formData.nip);
     const payload = { ...formData, address: { ...formData.address, postcode }, nip };
@@ -82,7 +86,6 @@ const CustomerForm = ({ getCustomers }) => {
           </h1>
         </div>
       </div>
-
       <div className="form-card">
         <div className="form-card__header">
           <div className="form-card__title">

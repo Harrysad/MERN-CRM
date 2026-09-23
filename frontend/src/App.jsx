@@ -27,6 +27,7 @@ const SESSION_WARNING_SECONDS = (SESSION_TIMEOUT_MS - SESSION_WARNING_MS) / 1000
 
 function App() {
   const [user, setUser] = useState(JSON.parse(getCookie("user") || "null"));
+  const isViewer = user?.role === "viewer";
   const [menuOpen, setMenuOpen] = useState(false);
   const [showSessionWarning, setShowSessionWarning] = useState(false);
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ function App() {
   const [sortOrder, setSortOrder] = useState("asc");
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebouncedValue(searchTerm, 300);
-  const {pageSize, setPageSize} = usePageSize();
+  const { pageSize, setPageSize } = usePageSize();
 
   const handleSortChange = (e) => setSortField(e.target.value);
   const toggleSortOrder = () =>
@@ -99,7 +100,7 @@ function App() {
   return (
     <div className="App">
       {user && (
-                <nav className="crm-navbar">
+        <nav className="crm-navbar">
           <NavLink className="crm-navbar__brand" to="/" onClick={closeMenu}>
             <div className="crm-navbar__brand-icon">
               <i className="fa-solid fa-chart-line"></i>
@@ -169,6 +170,13 @@ function App() {
         onLogout={handleLogOut}
       />
 
+      {user && isViewer && (
+        <div className="alert alert-warning crm-viewer-banner mb-0 d-flex align-items-center justify-content-center gap-2" role="alert">
+          <i className="fa-solid fa-circle-info"></i>
+          Konto demo jest tylko do odczytu — możesz przeglądać i testować formularze, ale żadne zmiany nie zostaną zapisane.
+        </div>
+      )}
+
       <Routes>
         <Route path="/Home" element={<SignUpSignIn setUser={setUser} />} />
         <Route
@@ -188,6 +196,7 @@ function App() {
                   onSearchChange={setSearchTerm}
                   pageSize={pageSize}
                   onPageSizeChange={setPageSize}
+                  isViewer={isViewer}
                 />
                 <Pagination
                   dataPerPage={pageSize}
@@ -204,7 +213,7 @@ function App() {
           element={
             <ProtectedRoute user={user}>
               <div className="main-content">
-                <CustomerForm getCustomers={handleGetCustomers} />
+                <CustomerForm getCustomers={handleGetCustomers} isViewer={isViewer} />
               </div>
             </ProtectedRoute>
           }
@@ -214,7 +223,7 @@ function App() {
           element={
             <ProtectedRoute user={user}>
               <div className="main-content">
-                <CustomerForm getCustomers={handleGetCustomers} />
+                <CustomerForm getCustomers={handleGetCustomers} isViewer={isViewer} />
               </div>
             </ProtectedRoute>
           }
@@ -224,7 +233,7 @@ function App() {
           element={
             <ProtectedRoute user={user}>
               <div className="main-content">
-                <CustomerDetails />
+                <CustomerDetails isViewer={isViewer} />
               </div>
             </ProtectedRoute>
           }

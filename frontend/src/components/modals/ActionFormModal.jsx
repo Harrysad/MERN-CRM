@@ -12,6 +12,7 @@ const ActionFormModal = ({
   onConfirm,
   customerName,
   formMode,
+  isViewer,
 }) => {
   const [error, setError] = useState("");
 
@@ -22,6 +23,10 @@ const ActionFormModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isViewer) {
+      setError("Konto demo jest tylko do odczytu — zmiana nie zostanie zapisana.");
+      return;
+    }
     if (!value.type || !value.description || !value.date) {
       setError("All fields required!!");
       return;
@@ -32,10 +37,10 @@ const ActionFormModal = ({
   };
 
   const actionTypes = [
-    {value: "Telefon", label: "Telefon"},
-    {value: "Spotkanie", label: "Spotkanie"},
-    {value: "Mail", label: "Mail"},
-    {value: "Wideo rozmowa", label: "Wideo rozmowa"},
+    { value: "Telefon", label: "Telefon" },
+    { value: "Spotkanie", label: "Spotkanie" },
+    { value: "Mail", label: "Mail" },
+    { value: "Wideo rozmowa", label: "Wideo rozmowa" },
   ];
 
   const body = (
@@ -65,9 +70,12 @@ const ActionFormModal = ({
                 {action.label}
               </option>
             ))}
-            </FormControl>
+          </FormControl>
         </FloatingLabel>
-        <FloatingLabel controlId="floatingInput" label="Opis" className="mb-3">
+        <FloatingLabel
+          controlId="floatingInput"
+          label="Opis"
+          className="mb-3">
           <FormControl
             type="text"
             name="description"
@@ -92,10 +100,14 @@ const ActionFormModal = ({
   );
   const footer = (
     <>
-      <Button variant="secondary" onClick={onClose}>
+      <Button
+        variant="secondary"
+        onClick={onClose}>
         Anuluj
       </Button>
-      <Button variant="success" onClick={handleSubmit}>
+      <Button
+        variant="success"
+        onClick={handleSubmit}>
         {formMode === "edit" ? "Zapisz zmiany" : "Dodaj"}
       </Button>
     </>

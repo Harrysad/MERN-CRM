@@ -20,7 +20,7 @@ const ActionBadge = ({ type }) => {
   );
 };
 
-const ActionList = ({ handleGetActions, customerName, allActions }) => {
+const ActionList = ({ handleGetActions, customerName, allActions, isViewer}) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalEditVisible, setModalEditVisible] = useState(false);
   const [selectedActionId, setSelectedActionId] = useState(null);
@@ -149,6 +149,7 @@ const ActionList = ({ handleGetActions, customerName, allActions }) => {
         show={modalVisible}
         onClose={() => setModalVisible(false)}
         onConfirm={handleDelete}
+        isViewer={isViewer}
       />
 
       <ActionFormModal
@@ -160,6 +161,7 @@ const ActionList = ({ handleGetActions, customerName, allActions }) => {
         customerName={customerName}
         formMode="edit"
         handleGetActions={handleGetActions}
+        isViewer={isViewer}
       />
     </>
   );
