@@ -37,8 +37,8 @@ export const setCookie = (user) => {
   var time = now.getTime();
   var expireTime = time + 1000 * 36000;
   now.setTime(expireTime);
-  document.cookie = `user=${JSON.stringify(
-    user
+  document.cookie = `user=${encodeURIComponent(
+    JSON.stringify(user)
   )};expires=${now.toUTCString()};`;
 };
 
@@ -60,5 +60,5 @@ export const getCookie = (cname) => {
 
 
 export const deleteCookie = (cname) => {
-  document.cookie = cname +'=;Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+  document.cookie = cname + '=;Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
