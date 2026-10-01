@@ -58,6 +58,16 @@ export const getCookie = (cname) => {
   return "";
 };
 
+export const getWriteBlockMessage = (isViewer, isVerified) => {
+  if (isViewer) {
+    return "Konto demo jest tylko do odczytu - możesz przeglądać i testować formularze, ale żadne zmiany nie zostaną zapisane.";
+  }
+  if (!isVerified) {
+    return "Potwierdź adres e-mail, aby móc zapisywać zmiany. Sprawdź swoją skrzynkę pocztową.";
+  }
+  return null;
+}
+
 
 export const deleteCookie = (cname) => {
   document.cookie = cname + '=;Expires=Thu, 01 Jan 1970 00:00:01 GMT;';

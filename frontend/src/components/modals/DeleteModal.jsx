@@ -1,8 +1,11 @@
 import { Button } from "react-bootstrap";
 import GenericModal from "./GenericModal";
+import { getWriteBlockMessage } from "../../helpers/helpers";
 
-const DeleteModal = ({ show, onClose, onConfirm, isViewer }) => {
-  const footer = isViewer ? (
+const DeleteModal = ({ show, onClose, onConfirm, isViewer, isVerified }) => {
+  const blockMessage = getWriteBlockMessage(isViewer, isVerified);
+
+  const footer = blockMessage ? (
     <Button variant="secondary" onClick={onClose}>
       Zamknij
     </Button>
@@ -22,10 +25,7 @@ const DeleteModal = ({ show, onClose, onConfirm, isViewer }) => {
       show={show}
       onClose={onClose}
       title="Potwierdzenie usunięcia"
-      body={
-        isViewer
-        ? "Konto demo jest tylko do odczytu - usuwanie danych jest wyłączone."
-        : "Czy na pewno chcesz usunąć?"
+      body={blockMessage || "Czy na pewno chcesz usunąć?"
       }
       footer={footer}
     />

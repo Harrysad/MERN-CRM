@@ -1,16 +1,27 @@
 import { useCallback, useEffect, useState } from "react";
-import { Route, Routes, Navigate, useNavigate, NavLink } from "react-router-dom";
+import {
+  Route,
+  Routes,
+  Navigate,
+  useNavigate,
+  NavLink,
+} from "react-router-dom";
 import "./App.css";
 
 import { getCustomers } from "./apiService/customer/apiCustomer";
-import { logOutUser } from "./apiService/user/apiUser";
+import { logOutUser, resendVerification } from "./apiService/user/apiUser";
 import CustomerDetails from "./components/CustomerDetails";
 import CustomerForm from "./components/CustomerForm";
 import CustomerList from "./components/CustomerList";
+import VerifyEmail from "./components/VerifyEmail";
 import { SignUpSignIn } from "./components/SignUpSignIn";
 import Pagination from "./components/Pagination";
 import SessionTimeoutModal from "./components/modals/SessionTimeoutModal";
-import { deleteCookie, getCookie } from "./helpers/helpers";
+import {
+  deleteCookie,
+  getCookie,
+  getWriteBlockMessage,
+} from "./helpers/helpers";
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { useTheme } from "./hooks/useTheme";
@@ -23,12 +34,17 @@ const ProtectedRoute = ({ user, children }) => {
 
 const SESSION_WARNING_MS = 4 * 60 * 1000;
 const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
-const SESSION_WARNING_SECONDS = (SESSION_TIMEOUT_MS - SESSION_WARNING_MS) / 1000;
+const SESSION_WARNING_SECONDS =
+  (SESSION_TIMEOUT_MS - SESSION_WARNING_MS) / 1000;
 
 function App() {
   const [user, setUser] = useState(JSON.parse(getCookie("user") || "null"));
   const isViewer = user?.role === "viewer";
+  const isVerified = user?.verified !== false;
+  const writeBlockMessage = getWriteBlockMessage(isViewer, isVerified);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendInfo, setResendInfo] = useState("");
   const [showSessionWarning, setShowSessionWarning] = useState(false);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
@@ -57,11 +73,13 @@ function App() {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
 
   const handleGetCustomers = (page = currentPage, limit = pageSize) => {
-    getCustomers(page, limit, sortField, sortOrder, debouncedSearch).then((res) => {
-      setCustomers(res.data);
-      setTotalCustomers(res.total);
-      setCurrentPage(res.page);
-    });
+    getCustomers(page, limit, sortField, sortOrder, debouncedSearch).then(
+      (res) => {
+        setCustomers(res.data);
+        setTotalCustomers(res.total);
+        setCurrentPage(res.page);
+      },
+    );
   };
 
   useEffect(() => {
@@ -71,13 +89,13 @@ function App() {
   const handleLogOut = useCallback(
     (e) => {
       e?.preventDefault();
-      logOutUser().catch(() => { });
+      logOutUser().catch(() => {});
       setShowSessionWarning(false);
       setUser(null);
       deleteCookie("user");
       navigate("/Home");
     },
-    [navigate]
+    [navigate],
   );
 
   const handleWarn = useCallback(() => setShowSessionWarning(true), []);
@@ -97,6 +115,19 @@ function App() {
 
   const closeMenu = () => setMenuOpen(false);
 
+  const handleResendVerification = () => {
+    setResending(true);
+    setResendInfo("");
+    resendVerification()
+      .then((res) => setResendInfo(res.message))
+      .catch((err) =>
+        setResendInfo(
+          err.response?.data?.message ||
+            "Nie udało się wysłać linku. Spróbuj ponownie później.",
+        ),
+      )
+      .finally(() => setResending(false));
+  };
   return (
     <div className="App">
       {user && (
@@ -113,7 +144,12 @@ function App() {
           <div className="crm-navbar__divider" />
 
           <div className={`crm-navbar__nav${menuOpen ? " open" : ""}`}>
-            <NavLink to="/" className="crm-navbar__link" onClick={closeMenu} end>
+            <NavLink
+              to="/"
+              className="crm-navbar__link"
+              onClick={closeMenu}
+              end
+            >
               <i className="fa-solid fa-users"></i>
               Klienci
             </NavLink>
@@ -122,7 +158,9 @@ function App() {
               className="crm-navbar__link crm-navbar__link--mobile"
               onClick={toggleTheme}
             >
-              <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`}></i>
+              <i
+                className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`}
+              ></i>
               {theme === "dark" ? "Jasny motyw" : "Ciemny motyw"}
             </button>
             <a
@@ -142,12 +180,22 @@ function App() {
             <button
               className="crm-navbar__theme-toggle"
               onClick={toggleTheme}
-              aria-label={theme === "dark" ? "Przełącz na jasny motyw" : "Przełącz na ciemny motyw"}
+              aria-label={
+                theme === "dark"
+                  ? "Przełącz na jasny motyw"
+                  : "Przełącz na ciemny motyw"
+              }
               title={theme === "dark" ? "Jasny motyw" : "Ciemny motyw"}
             >
-              <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`}></i>
+              <i
+                className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`}
+              ></i>
             </button>
-            <a href="/Home" className="crm-navbar__logout" onClick={handleLogOut}>
+            <a
+              href="/Home"
+              className="crm-navbar__logout"
+              onClick={handleLogOut}
+            >
               <i className="fa-solid fa-right-from-bracket"></i>
               Wyloguj
             </a>
@@ -157,7 +205,9 @@ function App() {
               aria-label="Menu"
               aria-expanded={menuOpen}
             >
-              <i className={`fa-solid ${menuOpen ? "fa-xmark" : "fa-bars"}`}></i>
+              <i
+                className={`fa-solid ${menuOpen ? "fa-xmark" : "fa-bars"}`}
+              ></i>
             </button>
           </div>
         </nav>
@@ -170,15 +220,32 @@ function App() {
         onLogout={handleLogOut}
       />
 
-      {user && isViewer && (
-        <div className="alert alert-warning crm-viewer-banner mb-0 d-flex align-items-center justify-content-center gap-2" role="alert">
+      {user && writeBlockMessage && (
+        <div
+          className="alert alert-warning crm-viewer-banner mb-0 d-flex align-items-center justify-content-center flex-wrap gap-2"
+          role="alert"
+        >
           <i className="fa-solid fa-circle-info"></i>
-          Konto demo jest tylko do odczytu — możesz przeglądać i testować formularze, ale żadne zmiany nie zostaną zapisane.
+          {writeBlockMessage}
+          {!isViewer && !isVerified && (
+            <>
+              <button
+                type="button"
+                className="btn btn-sm btn-warning"
+                onClick={handleResendVerification}
+                disabled={resending}
+              >
+                Wyślij link ponownie
+              </button>
+              {resendInfo && <span>{resendInfo}</span>}
+            </>
+          )}
         </div>
       )}
 
       <Routes>
         <Route path="/Home" element={<SignUpSignIn setUser={setUser} />} />
+        <Route path="/verify/:token" element={<VerifyEmail />} />
         <Route
           path="/"
           element={
@@ -197,6 +264,7 @@ function App() {
                   pageSize={pageSize}
                   onPageSizeChange={setPageSize}
                   isViewer={isViewer}
+                  isVerified={isVerified}
                 />
                 <Pagination
                   dataPerPage={pageSize}
@@ -213,7 +281,11 @@ function App() {
           element={
             <ProtectedRoute user={user}>
               <div className="main-content">
-                <CustomerForm getCustomers={handleGetCustomers} isViewer={isViewer} />
+                <CustomerForm
+                  getCustomers={handleGetCustomers}
+                  isViewer={isViewer}
+                  isVerified={isVerified}
+                />
               </div>
             </ProtectedRoute>
           }
@@ -223,7 +295,11 @@ function App() {
           element={
             <ProtectedRoute user={user}>
               <div className="main-content">
-                <CustomerForm getCustomers={handleGetCustomers} isViewer={isViewer} />
+                <CustomerForm
+                  getCustomers={handleGetCustomers}
+                  isViewer={isViewer}
+                  isVerified={isVerified}
+                />
               </div>
             </ProtectedRoute>
           }
@@ -233,7 +309,7 @@ function App() {
           element={
             <ProtectedRoute user={user}>
               <div className="main-content">
-                <CustomerDetails isViewer={isViewer} />
+                <CustomerDetails isViewer={isViewer} isVerified={isVerified} />
               </div>
             </ProtectedRoute>
           }
