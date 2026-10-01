@@ -2,6 +2,7 @@ const request = require("supertest");
 const app = require("../../../app");
 const { connect, closeDatabase, clearDatabase } = require("../../setup");
 const { sendEmail } = require("../../../app/services/emailService");
+const User = require("../../../app/models/UserModel");
 
 jest.mock("../../../app/services/emailService", () => ({
   sendEmail: jest.fn().mockResolvedValue(undefined),
@@ -145,6 +146,70 @@ describe("Email verification", () => {
       await request(app).get(`/auth/verify/${token}`);
 
       const res = await request(app).get(`/auth/verify/${token}`);
+      expect(res.statusCode).toBe(400);
+    });
+  });
+
+  describe("POST /auth/resend-verification", () => {
+    let jwtToken;
+
+    beforeEach(async () => {
+      await request(app).post("/auth/signup").send({
+        name: "Jan Kowalski",
+        email: "jan@example.com",
+        password: "password123",
+      });
+
+      const loginRes = await request(app).post("/auth/login").send({
+        email: "jan@example.com",
+        password: "password123",
+      });
+      jwtToken = loginRes.body.jwt;
+    });
+
+    it("requires authentication", async () => {
+      const res = await request(app).post("/auth/resend-verification");
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("blocks a resend during the cooldown", async () => {
+      const res = await request(app)
+        .post("/auth/resend-verification")
+        .set("Authorization", jwtToken);
+
+      expect(res.statusCode).toBe(429);
+      expect(sendEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it("sends a new link after the cooldown and invalidates the old one", async () => {
+      const oldToken = extractVerificationToken();
+      await User.updateOne(
+        { email: "jan@example.com" },
+        { verificationSentAt: new Date(Date.now() - 2 * 60 * 1000) },
+      );
+
+      const res = await request(app)
+        .post("/auth/resend-verification")
+        .set("Authorization", jwtToken);
+      expect(res.statusCode).toBe(200);
+      expect(sendEmail).toHaveBeenCalledTimes(2);
+
+      const newToken = extractVerificationToken();
+      expect(newToken).not.toBe(oldToken);
+
+      const oldRes = await request(app).get(`/auth/verify/${oldToken}`);
+      expect(oldRes.statusCode).toBe(400);
+
+      const newRes = await request(app).get(`/auth/verify/${newToken}`);
+      expect(newRes.statusCode).toBe(200);
+    });
+
+    it("rejects a resend for an already verified account", async () => {
+      await request(app).get(`/auth/verify/${extractVerificationToken()}`);
+
+      const res = await request(app)
+        .post("/auth/resend-verification")
+        .set("Authorization", jwtToken);
       expect(res.statusCode).toBe(400);
     });
   });

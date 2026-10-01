@@ -1,5 +1,6 @@
 import axios from "axios";
 import config from "../../config";
+import { getCookie } from "../../helpers/helpers";
 
 const api = axios.create({
   baseURL: config.api.url + '/auth', // Podstawowy URL API
@@ -45,6 +46,19 @@ export const verifyEmail = async (token) => {
     return response.data;
   } catch (error) {
     console.error("Błąd podczas weryfikacji adresu e-mail.", error);
+    throw error;
+  }
+}
+
+export const resendVerification = async () => {
+  try {
+    const token = JSON.parse(getCookie("user") || "null")?.jwt;
+    const response = await api.post("/resend-verification", {}, {
+      headers: {Authorization: token}
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Błąd podczas ponownego wysyłania linku weryfikacyjnego: ", error);
     throw error;
   }
 }

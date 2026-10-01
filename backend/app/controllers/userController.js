@@ -3,7 +3,19 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const { sendEmail } = require("../services/emailService");
 
-const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
+const RESEND_COOLDOWN_MS = 60 * 1000;
+
+const hashToken = (token) =>
+  crypto.createHash("sha256").update(token).digest("hex");
+
+const sendVerificationEmail = (user, token) => {
+  const link = `${process.env.FRONTEND_URL}/verify/${token}`;
+  return sendEmail({
+    to: user.email,
+    subject: "Potwierdź swój adres e-mail - CRM Project",
+        html: `<p>Cześć ${user.name}, </p><p>Dziękujemy za rejestrację. Potwierdź swój adres e-mail, klikając w poniższy link:</p><p><a href="${link}">${link}</a></p><p>Jeśli nie zakładałeś/aś tego konta, zignoruj tę wiadomość.</p>`,
+  });
+};
 
 module.exports = {
   create: (req, res) => {
@@ -12,16 +24,14 @@ module.exports = {
       ...req.body,
       verified: false,
       verificationTokenHash: hashToken(verificationToken),
+      verificationSentAt: new Date(),
     });
     newUser
       .save()
       .then(() => {
-        const link = `${process.env.FRONTEND_URL}/verify/${verificationToken}`;
-        sendEmail({
-          to: newUser.email,
-          subject: "Potwierdź swój adres e-mail - CRM Project",
-          html: `<p>Cześć ${newUser.name}, </p><p>Dziękujemy za rejestrację. Potwierdź swój adres e-mail, klikając w poniższy link:</p><p><a> href="${link}"</a></p><p>Jeśli nie zakładałeś/aś tego konta, zignoruj tę wiadomość.</p>`,
-        }).catch((err) => console.error("Błąd wysyłki e-maila weryfikacyjnego: ", err));
+        sendVerificationEmail(newUser, verificationToken).catch((err) =>
+          console.error("Błąd wysyłki e-maila weryfikującego: ", err),
+        );
 
         res.status(201).json({
           name: newUser.name,
@@ -32,7 +42,7 @@ module.exports = {
         if (err.code === 11000) {
           res.status(409).json({
             error: true,
-            message: "User already excst"
+            message: "User already exists",
           });
         }
       });
@@ -49,14 +59,54 @@ module.exports = {
         user.verified = true;
         user.verificationTokenHash = null;
         return user.save().then(() => {
-          res.status(200).json({ 
-            message: "Adres e-mail został potwierdzony." 
+          res.status(200).json({
+            message: "Adres e-mail został potwierdzony.",
           });
         });
       })
       .catch((err) => {
-        res.status(500).json({ 
-          error: err 
+        res.status(500).json({
+          error: err,
+        });
+      });
+  },
+  resendVerification: (req, res) => {
+    User.findById(req.userId)
+      .then((user) => {
+        if (!user) {
+          return res.status(404).json({
+            message: "Nie znaleziono użytkownika.",
+          });
+        }
+        if (user.verified) {
+          return res.status(400).json({
+            message: "Adres e-mail jest już potwierdzony.",
+          });
+        }
+
+        const elapsed = Date.now() - (user.verificationSentAt?.getTime() ?? 0);
+        if (elapsed < RESEND_COOLDOWN_MS) {
+          const secondsLeft = Math.ceil((RESEND_COOLDOWN_MS - elapsed) / 1000);
+          return res.status(429).json({
+            message: `Poczekaj ${secondsLeft} s przed ponownym wysłaniem linku.`,
+          });
+        }
+
+        const verificationToken = crypto.randomBytes(32).toString("hex");
+        user.verificationTokenHash = hashToken(verificationToken);
+        user.verificationSentAt = new Date();
+        return user.save().then(() => {
+          sendVerificationEmail(user, verificationToken).catch((err) =>
+            console.error("Błąd wysyłki e-maila weryfikacyjnego: ", err),
+          );
+          res.status(200).json({
+            message: "Wysłano nowy link weryfikacyjny.",
+          });
+        });
+      })
+      .catch((err) => {
+        res.status(500).json({
+          error: err,
         });
       });
   },
@@ -109,6 +159,8 @@ module.exports = {
   logout: (_req, res) => {
     res.clearCookie("AuthToken");
 
-    return res.status(200).json({ message: "You have successfully logged out" })
+    return res
+      .status(200)
+      .json({ message: "You have successfully logged out" });
   },
 };

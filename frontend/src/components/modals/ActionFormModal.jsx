@@ -4,6 +4,7 @@ import FloatingLabel from "react-bootstrap/FloatingLabel";
 import { FormControl } from "react-bootstrap";
 import { Form } from "react-bootstrap";
 import { useState } from "react";
+import { getWriteBlockMessage } from "../../helpers/helpers";
 const ActionFormModal = ({
   show,
   onClose,
@@ -13,6 +14,7 @@ const ActionFormModal = ({
   customerName,
   formMode,
   isViewer,
+  isVerified,
 }) => {
   const [error, setError] = useState("");
 
@@ -23,8 +25,9 @@ const ActionFormModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (isViewer) {
-      setError("Konto demo jest tylko do odczytu — zmiana nie zostanie zapisana.");
+    const blockMessage = getWriteBlockMessage(isViewer, isVerified);
+    if (blockMessage) {
+      setError(blockMessage);
       return;
     }
     if (!value.type || !value.description || !value.date) {

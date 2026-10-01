@@ -4,9 +4,9 @@ import FloatingLabel from "react-bootstrap/FloatingLabel";
 import { FormControl } from "react-bootstrap";
 import { addCustomer, getCustomer, updateCustomer } from "../apiService/customer/apiCustomer";
 import { lookupNip } from "../apiService/nip/apiNip";
-import { extractCodeNumbers, formatNipCode, formatZipCode } from "../helpers/helpers";
+import { extractCodeNumbers, formatNipCode, formatZipCode, getWriteBlockMessage } from "../helpers/helpers";
 
-const CustomerForm = ({ getCustomers, isViewer }) => {
+const CustomerForm = ({ getCustomers, isViewer, isVerified }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [error, setError] = useState("");
@@ -83,8 +83,9 @@ const CustomerForm = ({ getCustomers, isViewer }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (isViewer) {
-      setError("Konto demo jest tylko do odczytu — zmiany nie zostaną zapisane.");
+    const blockMessage = getWriteBlockMessage(isViewer, isVerified);
+    if (blockMessage) {
+      setError(blockMessage);
       return;
     }
     const postcode = extractCodeNumbers(formData.address.postcode);

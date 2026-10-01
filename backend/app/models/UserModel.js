@@ -10,6 +10,7 @@ const User = new mongoose.Schema(
     role: { type: String, enum: ["admin", "viewer"], default: "admin" },
     verified: {type: Boolean, default: true},
     verificationTokenHash: {type: String, default: null},
+    verificationSentAt: {type: Date, default: null},
   },
   {
     timestamps: true,

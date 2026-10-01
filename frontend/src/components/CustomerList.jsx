@@ -18,6 +18,7 @@ const CustomerList = ({
   pageSize,
   onPageSizeChange,
   isViewer,
+  isVerified,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
@@ -210,6 +211,7 @@ const CustomerList = ({
         onClose={() => setModalVisible(false)}
         onConfirm={handleDelete}
         isViewer={isViewer}
+        isVerified={isVerified}
       />
     </>
   );
