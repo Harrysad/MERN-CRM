@@ -216,4 +216,47 @@ describe("Email verification", () => {
       expect(res.statusCode).toBe(400);
     });
   });
+
+  describe("GET /auth/verification-status", () => {
+    let jwtToken;
+
+    beforeEach(async () => {
+      await request(app).post("/auth/signup").send({
+        name: "Jan Kowalski",
+        email: "jan@example.com",
+        password: "password123",
+      });
+
+      const loginRes = await request(app).post("/auth/login").send({
+        email: "jan@example.com",
+        password: "password123",
+      });
+      jwtToken = loginRes.body.jwt;
+    });
+
+    it("requires authentication", async () => {
+      const res = await request(app).get("/auth/verification-status");
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("reports a new account as not verfied", async () => {
+      const res = await request(app)
+        .get("/auth/verification-status")
+        .set("Authorization", jwtToken);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.verified).toBe(false);
+    });
+
+    it("reports the account as verified after the linkis used, with the same token", async () => {
+      await request(app).get(`/auth/verify/${extractVerificationToken()}`);
+
+      const res = await request(app)
+        .get("/auth/verification-status")
+        .set("Authorization", jwtToken);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.verified).toBe(true);
+    });
+  });
 });

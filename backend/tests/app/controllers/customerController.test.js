@@ -1,7 +1,12 @@
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
 const app = require("../../../app");
-const { connect, closeDatabase, clearDatabase, verifyUser } = require("../../setup");
+const {
+  connect,
+  closeDatabase,
+  clearDatabase,
+  verifyUser,
+} = require("../../setup");
 
 let token;
 
@@ -423,7 +428,9 @@ describe("Unverified account", () => {
   });
 
   it("allows an unverified account to read the customer list", async () => {
-    const res = await request(app).get("/customers").set("Authorization", unverifiedToken);
+    const res = await request(app)
+      .get("/customers")
+      .set("Authorization", unverifiedToken);
     expect(res.statusCode).toBe(200);
   });
 
@@ -434,5 +441,15 @@ describe("Unverified account", () => {
       .send(sampleCustomer);
 
     expect(res.statusCode).toBe(403);
+  });
+
+  it("allows writes with an older token once the account has been verified", async () => {
+    await verifyUser("nowy@example.com");
+    const res = await request(app)
+      .post("/customers/add")
+      .set("Authorization", unverifiedToken)
+      .send(sampleCustomer);
+
+    expect(res.statusCode).toBe(201);
   });
 });

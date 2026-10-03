@@ -13,7 +13,7 @@ const sendVerificationEmail = (user, token) => {
   return sendEmail({
     to: user.email,
     subject: "Potwierdź swój adres e-mail - CRM Project",
-        html: `<p>Cześć ${user.name}, </p><p>Dziękujemy za rejestrację. Potwierdź swój adres e-mail, klikając w poniższy link:</p><p><a href="${link}">${link}</a></p><p>Jeśli nie zakładałeś/aś tego konta, zignoruj tę wiadomość.</p>`,
+    html: `<p>Cześć ${user.name}, </p><p>Dziękujemy za rejestrację. Potwierdź swój adres e-mail, klikając w poniższy link:</p><p><a href="${link}">${link}</a></p><p>Jeśli nie zakładałeś/aś tego konta, zignoruj tę wiadomość.</p>`,
   });
 };
 
@@ -150,6 +150,25 @@ module.exports = {
             });
             return;
           }
+        });
+      })
+      .catch((err) => {
+        res.status(500).json({
+          error: err,
+        });
+      });
+  },
+  verificationStatus: (req, res) => {
+    User.findById(req.userId)
+      .select("verified")
+      .then((user) => {
+        if (!user) {
+          return res.status(404).json({
+            message: "Nie znaleziono użytkownika.",
+          });
+        }
+        res.status(200).json({
+          verified: user.verified,
         });
       })
       .catch((err) => {
