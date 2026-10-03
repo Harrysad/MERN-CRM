@@ -1,7 +1,7 @@
-const RESEND_API_URL = "https://api/resend.com/emails";
+const RESEND_API_URL = "https://api.resend.com/emails";
 
 const sendEmail = async ({ to, subject, html }) => {
-    const apiKey = process.env.RESEND_API_URL;
+    const apiKey = process.env.RESEND_API_KEY;
 
     if (!apiKey) {
         console.log("--- E-mail  (tryb lokalny, brak RESEND_API_KEY) ---");
@@ -12,7 +12,7 @@ const sendEmail = async ({ to, subject, html }) => {
         return;
     }
 
-    const from = process.env.EMAIL_FROM;
+    const from = process.env.EMAIL_FROM || "no-reply@example.com";
 
     const response = await fetch(RESEND_API_URL, {
         method: "POST",
