@@ -89,6 +89,7 @@ module.exports = {
           const secondsLeft = Math.ceil((RESEND_COOLDOWN_MS - elapsed) / 1000);
           return res.status(429).json({
             message: `Poczekaj ${secondsLeft} s przed ponownym wysłaniem linku.`,
+            retryAfterSeconds: secondsLeft,
           });
         }
 
@@ -101,6 +102,7 @@ module.exports = {
           );
           res.status(200).json({
             message: "Wysłano nowy link weryfikacyjny.",
+            retryAfterSeconds: RESEND_COOLDOWN_MS / 1000,
           });
         });
       })
