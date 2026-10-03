@@ -4,12 +4,17 @@ import {
   Routes,
   Navigate,
   useNavigate,
+  useLocation,
   NavLink,
 } from "react-router-dom";
 import "./App.css";
 
 import { getCustomers } from "./apiService/customer/apiCustomer";
-import { logOutUser, resendVerification } from "./apiService/user/apiUser";
+import {
+  logOutUser,
+  resendVerification,
+  getVerificationStatus,
+} from "./apiService/user/apiUser";
 import CustomerDetails from "./components/CustomerDetails";
 import CustomerForm from "./components/CustomerForm";
 import CustomerList from "./components/CustomerList";
@@ -21,6 +26,7 @@ import ResendVerificationModal from "./components/modals/ResendVerificationModal
 import {
   deleteCookie,
   getCookie,
+  setCookie,
   getWriteBlockMessage,
 } from "./helpers/helpers";
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
@@ -46,10 +52,16 @@ function App() {
   const writeBlockMessage = getWriteBlockMessage(isViewer, isVerified);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resending, setResending] = useState(false);
-  const [resendModal, setResendModal] = useState({ show: false, message: "" });
-  const { secondsLeft: resendSecondsLeft, start: startResendCountdown } = useCountdown();
+  const [resendModal, setResendModal] = useState({
+    show: false,
+    message: "",
+    showCooldown: true,
+  });
+  const { secondsLeft: resendSecondsLeft, start: startResendCountdown } =
+    useCountdown();
   const [showSessionWarning, setShowSessionWarning] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
@@ -92,7 +104,7 @@ function App() {
   const handleLogOut = useCallback(
     (e) => {
       e?.preventDefault();
-      logOutUser().catch(() => { });
+      logOutUser().catch(() => {});
       setShowSessionWarning(false);
       setUser(null);
       deleteCookie("user");
@@ -118,24 +130,48 @@ function App() {
 
   const closeMenu = () => setMenuOpen(false);
 
+  const refreshVerification = async () => {
+    getVerificationStatus()
+      .then((res) => {
+        if (res.verified) {
+          const updated = { ...user, verified: true };
+          setCookie(updated);
+          setUser(updated);
+        }
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    if (user && !isVerified) refreshVerification();
+  }, [location.pathname]);
+
   const handleResendVerification = () => {
     setResending(true);
     resendVerification()
       .then((res) => {
         if (res.retryAfterSeconds) startResendCountdown(res.retryAfterSeconds);
-        setResendModal({ show: true, message: res.message });
+        setResendModal({
+          show: true,
+          message: res.message,
+          showCooldown: true,
+        });
       })
       .catch((err) => {
         const wait = err.response?.data?.retryAfterSeconds;
         if (wait) startResendCountdown(wait);
+        if (err.response?.status === 400) refreshVerification();
         setResendModal({
           show: true,
           message:
-            err.response?.data?.message || "Nie udało się wysłać linku weryfikacyjnego. Spróbuj ponownie później.",
+            err.response?.sata?.message ||
+            "Nie udało się wysłać linku weryfikacyjnego. Spróbuj ponownie później.",
+          showCooldown: Boolean(wait),
         });
       })
       .finally(() => setResending(false));
   };
+
   return (
     <div className="App">
       {user && (
@@ -233,8 +269,8 @@ function App() {
         onClose={() => setResendModal((prev) => ({ ...prev, show: false }))}
         message={resendModal.message}
         secondsLeft={resendSecondsLeft}
+        showCooldown={resendModal.showCooldown}
       />
-
 
       {user && writeBlockMessage && (
         <div
