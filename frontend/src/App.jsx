@@ -17,6 +17,7 @@ import VerifyEmail from "./components/VerifyEmail";
 import { SignUpSignIn } from "./components/SignUpSignIn";
 import Pagination from "./components/Pagination";
 import SessionTimeoutModal from "./components/modals/SessionTimeoutModal";
+import ResendVerificationModal from "./components/modals/ResendVerificationModal";
 import {
   deleteCookie,
   getCookie,
@@ -26,6 +27,7 @@ import { useInactivityLogout } from "./hooks/useInactivityLogout";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { useTheme } from "./hooks/useTheme";
 import { usePageSize } from "./hooks/usePageSize";
+import { useCountdown } from "./hooks/useCountdown";
 
 const ProtectedRoute = ({ user, children }) => {
   if (!user) return <Navigate to="/home" replace />;
@@ -44,7 +46,8 @@ function App() {
   const writeBlockMessage = getWriteBlockMessage(isViewer, isVerified);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resending, setResending] = useState(false);
-  const [resendInfo, setResendInfo] = useState("");
+  const [resendModal, setResendModal] = useState({ show: false, message: "" });
+  const { secondsLeft: resendSecondsLeft, start: startResendCountdown } = useCountdown();
   const [showSessionWarning, setShowSessionWarning] = useState(false);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
@@ -89,7 +92,7 @@ function App() {
   const handleLogOut = useCallback(
     (e) => {
       e?.preventDefault();
-      logOutUser().catch(() => {});
+      logOutUser().catch(() => { });
       setShowSessionWarning(false);
       setUser(null);
       deleteCookie("user");
@@ -117,15 +120,20 @@ function App() {
 
   const handleResendVerification = () => {
     setResending(true);
-    setResendInfo("");
     resendVerification()
-      .then((res) => setResendInfo(res.message))
-      .catch((err) =>
-        setResendInfo(
-          err.response?.data?.message ||
-            "Nie udało się wysłać linku. Spróbuj ponownie później.",
-        ),
-      )
+      .then((res) => {
+        if (res.retryAfterSeconds) startResendCountdown(res.retryAfterSeconds);
+        setResendModal({ show: true, message: res.message });
+      })
+      .catch((err) => {
+        const wait = err.response?.data?.retryAfterSeconds;
+        if (wait) startResendCountdown(wait);
+        setResendModal({
+          show: true,
+          message:
+            err.response?.data?.message || "Nie udało się wysłać linku weryfikacyjnego. Spróbuj ponownie później.",
+        });
+      })
       .finally(() => setResending(false));
   };
   return (
@@ -220,6 +228,14 @@ function App() {
         onLogout={handleLogOut}
       />
 
+      <ResendVerificationModal
+        show={resendModal.show}
+        onClose={() => setResendModal((prev) => ({ ...prev, show: false }))}
+        message={resendModal.message}
+        secondsLeft={resendSecondsLeft}
+      />
+
+
       {user && writeBlockMessage && (
         <div
           className="alert alert-warning crm-viewer-banner mb-0 d-flex align-items-center justify-content-center flex-wrap gap-2"
@@ -228,17 +244,16 @@ function App() {
           <i className="fa-solid fa-circle-info"></i>
           {writeBlockMessage}
           {!isViewer && !isVerified && (
-            <>
-              <button
-                type="button"
-                className="btn btn-sm btn-warning"
-                onClick={handleResendVerification}
-                disabled={resending}
-              >
-                Wyślij link ponownie
-              </button>
-              {resendInfo && <span>{resendInfo}</span>}
-            </>
+            <button
+              type="button"
+              className="btn btn-sm btn-warning"
+              onClick={handleResendVerification}
+              disabled={resending || resendSecondsLeft > 0}
+            >
+              {resendSecondsLeft > 0
+                ? `Wyślij ponownie (${resendSecondsLeft} s.)`
+                : "Wyślij link ponownie"}
+            </button>
           )}
         </div>
       )}

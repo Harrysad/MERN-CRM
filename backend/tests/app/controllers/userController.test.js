@@ -178,6 +178,8 @@ describe("Email verification", () => {
         .set("Authorization", jwtToken);
 
       expect(res.statusCode).toBe(429);
+      expect(res.body.retryAfterSeconds).toBeGreaterThan(0);
+      expect(res.body.retryAfterSeconds).toBeLessThanOrEqual(60);
       expect(sendEmail).toHaveBeenCalledTimes(1);
     });
 
@@ -192,6 +194,7 @@ describe("Email verification", () => {
         .post("/auth/resend-verification")
         .set("Authorization", jwtToken);
       expect(res.statusCode).toBe(200);
+      expect(res.body.retryAfterSeconds).toBe(60);
       expect(sendEmail).toHaveBeenCalledTimes(2);
 
       const newToken = extractVerificationToken();
