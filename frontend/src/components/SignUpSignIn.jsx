@@ -3,13 +3,19 @@ import "./SignUpSignIn.css";
 import { addUser, logInUser } from "../apiService/user/apiUser";
 import { useNavigate } from "react-router-dom";
 import { setCookie } from "../helpers/helpers";
+import SignupSuccessModal from "./modals/SignupSuccessModal";
 
 export const SignUpSignIn = ({ setUser }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState("");
+  const [signupModal, setSignupModal] = useState({ show: false, email: "" });
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({ name: "", email: "", password: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,6 +30,7 @@ export const SignUpSignIn = ({ setUser }) => {
     if (isRegister) {
       addUser(formData)
         .then(() => {
+          setSignupModal({ show: true, email: formData.email });
           setIsRegister(false);
           setFormData({ name: "", email: "", password: "" });
         })
@@ -116,16 +123,24 @@ export const SignUpSignIn = ({ setUser }) => {
             </div>
 
             <button type="submit" className="auth-btn">
-              <i className={`fa-solid ${isRegister ? "fa-user-plus" : "fa-right-to-bracket"} me-2`}></i>
+              <i
+                className={`fa-solid ${isRegister ? "fa-user-plus" : "fa-right-to-bracket"} me-2`}
+              ></i>
               {isRegister ? "Zarejestruj się" : "Zaloguj się"}
             </button>
           </form>
 
           <p className="auth-link">
             {isRegister ? (
-              <>Masz już konto? <button onClick={switchMode}>Zaloguj się</button></>
+              <>
+                Masz już konto?{" "}
+                <button onClick={switchMode}>Zaloguj się</button>
+              </>
             ) : (
-              <>Nie masz konta? <button onClick={switchMode}>Zarejestruj się</button></>
+              <>
+                Nie masz konta?{" "}
+                <button onClick={switchMode}>Zarejestruj się</button>
+              </>
             )}
           </p>
         </div>
@@ -135,21 +150,37 @@ export const SignUpSignIn = ({ setUser }) => {
           <div className="auth-promo-logo">
             <i className="fa-solid fa-chart-line"></i>
           </div>
-          <h3>CRM<span style={{ color: "#93c5fd" }}>Pro</span></h3>
+          <h3>
+            CRM<span style={{ color: "#93c5fd" }}>Pro</span>
+          </h3>
           <p>
             Profesjonalne zarządzanie relacjami z klientami w jednym miejscu.
           </p>
           <ul className="auth-promo-features">
-            <li><i className="fa-solid fa-check"></i> Baza klientów i kontraktów</li>
-            <li><i className="fa-solid fa-check"></i> Historia interakcji</li>
-            <li><i className="fa-solid fa-check"></i> Zarządzanie akcjami</li>
-            <li><i className="fa-solid fa-check"></i> Wyszukiwanie i sortowanie</li>
+            <li>
+              <i className="fa-solid fa-check"></i> Baza klientów i kontraktów
+            </li>
+            <li>
+              <i className="fa-solid fa-check"></i> Historia interakcji
+            </li>
+            <li>
+              <i className="fa-solid fa-check"></i> Zarządzanie akcjami
+            </li>
+            <li>
+              <i className="fa-solid fa-check"></i> Wyszukiwanie i sortowanie
+            </li>
           </ul>
           <button className="auth-switch-btn" onClick={switchMode}>
             {isRegister ? "Mam już konto" : "Utwórz konto"}
           </button>
         </div>
       </div>
+
+      <SignupSuccessModal
+        show={signupModal.show}
+        onClose={() => setSignupModal((prev) => ({ ...prev, show: false }))}
+        email={signupModal.email}
+      />
     </div>
   );
 };
