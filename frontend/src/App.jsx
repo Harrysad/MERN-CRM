@@ -164,7 +164,7 @@ function App() {
         setResendModal({
           show: true,
           message:
-            err.response?.sata?.message ||
+            err.response?.data?.message ||
             "Nie udało się wysłać linku weryfikacyjnego. Spróbuj ponownie później.",
           showCooldown: Boolean(wait),
         });
