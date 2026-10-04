@@ -3,6 +3,7 @@ import {
   formatZipCode,
   formatNipCode,
   getWriteBlockMessage,
+  getSignupErrorMessage,
 } from "../../../src/helpers/helpers";
 
 describe("formatZipCode", () => {
@@ -50,5 +51,31 @@ describe("getWriteBlockMessage", () => {
 
   it("returns null when writes are allowed", () => {
     expect(getWriteBlockMessage(false, true)).toBeNull();
+  });
+});
+
+describe("getSignupErrorMessage", () => {
+  it("reports a taken email address for a 409 response", () => {
+    expect(getSignupErrorMessage({ response: { status: 409 } })).toMatch(
+      /już istnieje/,
+    );
+  });
+
+  it("asks to check the data for a 400 response", () => {
+    expect(getSignupErrorMessage({ response: { status: 400 } })).toMatch(
+      /poprawność/,
+    );
+  });
+
+  it("returns a generic message for other errors", () => {
+    expect(getSignupErrorMessage({ response: { status: 500 } })).toMatch(
+      /Nie udało się założyć konta/,
+    );
+  });
+
+  it("returns a generic message when there is no response", () => {
+    expect(getSignupErrorMessage(new Error("Network Error"))).toMatch(
+      /Nie udało się założyć konta/,
+    );
   });
 });

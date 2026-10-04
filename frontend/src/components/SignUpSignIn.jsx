@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./SignUpSignIn.css";
 import { addUser, logInUser } from "../apiService/user/apiUser";
 import { useNavigate } from "react-router-dom";
-import { setCookie } from "../helpers/helpers";
+import { setCookie, getSignupErrorMessage } from "../helpers/helpers";
 import SignupSuccessModal from "./modals/SignupSuccessModal";
 
 export const SignUpSignIn = ({ setUser }) => {
@@ -34,7 +34,7 @@ export const SignUpSignIn = ({ setUser }) => {
           setIsRegister(false);
           setFormData({ name: "", email: "", password: "" });
         })
-        .catch(() => setError("Ten adres e-mail jest już zajęty."));
+        .catch((err) => setError(getSignupErrorMessage(err)));
     } else {
       logInUser({ email: formData.email, password: formData.password })
         .then((user) => {
