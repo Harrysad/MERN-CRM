@@ -9,6 +9,11 @@ describe("SignupSuccessModal", () => {
     expect(screen.getByText(/Wysłaliśmy link aktywacyjny/)).toBeInTheDocument();
   });
 
+  it("warns that the account is deleted after 3 days", () => {
+    render(<SignupSuccessModal show onClose={() => {}} email="jan@firma.pl" />);
+    expect(screen.getByText(/usunięte po 3 dniach/)).toBeInTheDocument();
+  });
+
   it("renders nothing when it is not shown", () => {
     render(
       <SignupSuccessModal

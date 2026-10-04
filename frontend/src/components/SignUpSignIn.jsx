@@ -128,6 +128,13 @@ export const SignUpSignIn = ({ setUser }) => {
               ></i>
               {isRegister ? "Zarejestruj się" : "Zaloguj się"}
             </button>
+
+            {isRegister && (
+              <p className="text-muted small text-center mt-3 mb-0">
+                To aplikacja demonstracyjna - konta są automatycznie usuwane po
+                3 dniach.
+              </p>
+            )}
           </form>
 
           <p className="auth-link">
