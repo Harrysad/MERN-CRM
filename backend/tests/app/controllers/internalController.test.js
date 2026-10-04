@@ -29,7 +29,7 @@ const createUser = async ({ name, email, verified, role, ageDays }) => {
 };
 
 const cleanup = (secret) => {
-  const req = request(app).post("/internal/cleanup-unverified");
+  const req = request(app).post("/internal/cleanup-accounts");
   return secret ? req.set("X-Internal-Secret", secret) : req;
 };
 
@@ -50,7 +50,7 @@ beforeEach(() => {
   sendEmail.mockClear();
 });
 
-describe("POST /internal/cleanup-unverified", () => {
+describe("POST /internal/cleanup-accounts", () => {
   describe("access", () => {
     it("rejects a request without the secret", async () => {
       const res = await cleanup();
@@ -106,43 +106,67 @@ describe("POST /internal/cleanup-unverified", () => {
       expect(sendEmail.mock.calls[0][0].to).toBe("stare@example.com");
     });
 
-    it("keeps accounts that must not be deleted", async () => {
+    it("keeps recent accounts and the demo account", async () => {
       await createUser({
-        name: "Nowe",
+        name: "Nowe niepotwierdzone",
         email: "nowe@example.com",
         verified: false,
         ageDays: 1,
       });
       await createUser({
-        name: "Potwierdzone",
+        name: "Nowe potwierdzone",
         email: "ok@example.com",
         verified: true,
-        ageDays: 10,
+        ageDays: 1,
       });
       await createUser({
         name: "Demo",
         email: "demo@example.com",
-        verified: false,
-        role: "viewer",
-        ageDays: 10,
-      });
-      const legacy = await createUser({
-        name: "Sprzed weryfikacji",
-        email: "legacy@example.com",
         verified: true,
-        ageDays: 10,
+        role: "viewer",
+        ageDays: 30,
       });
-      await User.collection.updateOne(
-        { _id: legacy._id },
-        { $unset: { verified: "" } },
-      );
 
       const res = await cleanup(SECRET);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.deleted).toBe(0);
-      expect(await User.countDocuments()).toBe(4);
+      expect(await User.countDocuments()).toBe(3);
       expect(sendEmail).not.toHaveBeenCalled();
+    });
+
+    it("deletes an expired verified account with its data", async () => {
+      const user = await createUser({
+        name: "Stare Potwierdzone",
+        email: "stare-ok@example.com",
+        verified: true,
+        ageDays: 10,
+      });
+      const customer = await Customer.create({
+        owner: user._id,
+        name: "Acme",
+        address: {
+          street: "Testowa",
+          suite: "1",
+          city: "Warszawa",
+          postcode: "00-001",
+        },
+        nip: "1234567890",
+      });
+      await Action.create({
+        owner: user._id,
+        type: "Telefon",
+        customer: customer._id,
+      });
+
+      const res = await cleanup(SECRET);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.deleted).toBe(1);
+      expect(await User.countDocuments()).toBe(0);
+      expect(await Customer.countDocuments()).toBe(0);
+      expect(await Action.countDocuments()).toBe(0);
+      expect(sendEmail).toHaveBeenCalledTimes(1);
     });
 
     it("only deletes the expired accounts when there are several", async () => {
