@@ -23,12 +23,12 @@ export const formatNipCode = (code) => {
   if (digitOnly.length <= 8)
     return `${digitOnly.slice(0, 3)}-${digitOnly.slice(3, 6)}-${digitOnly.slice(
       6,
-      8
+      8,
     )}`;
 
   return `${digitOnly.slice(0, 3)}-${digitOnly.slice(3, 6)}-${digitOnly.slice(
     6,
-    8
+    8,
   )}-${digitOnly.slice(8, 10)}`;
 };
 
@@ -38,7 +38,7 @@ export const setCookie = (user) => {
   var expireTime = time + 1000 * 36000;
   now.setTime(expireTime);
   document.cookie = `user=${encodeURIComponent(
-    JSON.stringify(user)
+    JSON.stringify(user),
   )};expires=${now.toUTCString()};`;
 };
 
@@ -66,9 +66,18 @@ export const getWriteBlockMessage = (isViewer, isVerified) => {
     return "Potwierdź adres e-mail, aby móc zapisywać zmiany. Sprawdź swoją skrzynkę pocztową.";
   }
   return null;
-}
+};
 
+export const getSignupErrorMessage = (error) => {
+  if (error?.response?.status === 409) {
+    return "Konto z tym adresem e-mail już istnieje.";
+  }
+  if (error?.response?.status === 400) {
+    return "Sprawdź poprawność wprowadzonych danych.";
+  }
+  return "Nie udało się założyć konta. Spróbuj ponownie później.";
+};
 
 export const deleteCookie = (cname) => {
-  document.cookie = cname + '=;Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-}
+  document.cookie = cname + "=;Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+};
