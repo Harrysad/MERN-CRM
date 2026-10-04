@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const customerRouter = require("./app/router/customerRouter");
 const actionRouter = require("./app/router/actionRouter");
 const nipRouter = require("./app/router/nipRouter");
+const internalRouter = require("./app/router/internalRouter");
 const authMiddleware = require("./app/middlewares/authMiddleware");
 const userRouter = require("./app/router/userRouter");
 
@@ -17,7 +18,7 @@ app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
-  })
+  }),
 );
 
 // app.use((req, _res, next) => {
@@ -30,5 +31,6 @@ app.use("/auth", userRouter);
 app.use("/customers", authMiddleware, customerRouter);
 app.use("/actions", authMiddleware, actionRouter);
 app.use("/nip", authMiddleware, nipRouter);
+app.use("/internal", internalRouter);
 
 module.exports = app;
