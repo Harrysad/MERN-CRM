@@ -7,16 +7,20 @@ const SignupSuccessModal = ({ show, onClose, email }) => {
       <p className="mb-2">
         Wysłaliśmy link aktywacyjny na adres <strong>{email}</strong>
       </p>
-      <p className="mb-0 text-muted">
-        KLiknij go, aby potwierdzić konto. Jeśli widomość nie dotrze, sprawdź
-        folder ze spamem. Jeśli e-mail nie dotarł to zalogowaniu możesz poprosić
-        o ponowne wysłanie linku.
+      <p className="mb-2 text-muted">
+        Kliknij go, aby potwierdzić konto. Jeśli wiadomość nie dotrze, sprawdź
+        folder ze spamem. Po zalogowaniu możesz też poprosić o ponowne wysłanie
+        linku.
+      </p>
+      <p className="mb-0 text-muted small">
+        To aplikacja demonstracyjna - konto wraz ze wszystkimi danymi zostanie
+        automatycznie usunięte po 3 dniach.
       </p>
     </>
   );
 
   const footer = (
-    <Button vartiant="primary" onClick={onClose}>
+    <Button variant="primary" onClick={onClose}>
       Rozumiem
     </Button>
   );
