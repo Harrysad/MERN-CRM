@@ -40,11 +40,21 @@ module.exports = {
       })
       .catch((err) => {
         if (err.code === 11000) {
-          res.status(409).json({
+          return res.status(409).json({
             error: true,
             message: "User already exists",
           });
         }
+        if (err.name === "ValidationError") {
+          return res.status(400).json({
+            error: true,
+            message: "Invalid signup data",
+          });
+        }
+        res.status(500).json({
+          error: true,
+          message: "Signup failed",
+        });
       });
   },
   verify: (req, res) => {

@@ -4,13 +4,13 @@ const jwt = require("jsonwebtoken");
 
 const User = new mongoose.Schema(
   {
-    name: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: { type: String, enum: ["admin", "viewer"], default: "admin" },
-    verified: {type: Boolean, default: true},
-    verificationTokenHash: {type: String, default: null},
-    verificationSentAt: {type: Date, default: null},
+    verified: { type: Boolean, default: true },
+    verificationTokenHash: { type: String, default: null },
+    verificationSentAt: { type: Date, default: null },
   },
   {
     timestamps: true,
