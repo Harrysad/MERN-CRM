@@ -5,9 +5,9 @@ const internalController = require("../controllers/internalController");
 const requireInternalSecret = require("../middlewares/requireInternalSecret");
 
 router.post(
-  "/cleanup-unverified",
+  "/cleanup-accounts",
   requireInternalSecret,
-  internalController.cleanupUnverified,
+  internalController.cleanupAccounts,
 );
 
 module.exports = router;
