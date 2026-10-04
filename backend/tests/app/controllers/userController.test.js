@@ -53,6 +53,28 @@ describe("POST /auth/signup", () => {
 
     expect(res.statusCode).toBe(409);
   });
+
+  it("allows two users with the same name", async () => {
+    await request(app).post("/auth/signup").send({
+      name: "Jan Kowalski",
+      email: "jan@example.com",
+      password: "password123",
+    });
+    const res = await request(app).post("/auth/signup").send({
+      name: "Jan Kowalski",
+      email: "jan2@example.com",
+      password: "password123",
+    });
+    expect(res.statusCode).toBe(201);
+  });
+
+  it("rejects signup data that fails validation", async () => {
+    const res = await request(app).post("/auth/signup").send({
+      name: "Jan Kowalski",
+      email: "jan@example",
+    });
+    expect(res.statusCode).toBe(400);
+  });
 });
 
 describe("POST /auth/login", () => {
