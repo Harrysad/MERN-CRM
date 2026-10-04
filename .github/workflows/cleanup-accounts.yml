@@ -1,0 +1,22 @@
+name: Cleanup accounts
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete expired accounts
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          INTERNAL_CLEANUP_SECRET: ${{ secrets.INTERNAL_CLEANUP_SECRET }}
+        run: |
+          curl --fail --silent --show-error \
+            --max-time 90 \
+            --retry 5 --retry-delay 20 --retry-all-errors \
+            -X POST "$BACKEND_URL/internal/cleanup-accounts" \
+            -H "X-Internal-Secret: $INTERNAL_CLEANUP_SECRET"
+          echo
