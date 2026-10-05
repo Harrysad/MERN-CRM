@@ -3,8 +3,9 @@ const router = express.Router();
 
 const userController = require("../controllers/userController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const { loginLimiter, signupLimiter } = require("../middlewares/rateLimiters");
 
-router.post("/signup", userController.create);
+router.post("/signup", signupLimiter, userController.create);
 router.get("/verify/:token", userController.verify);
 router.post(
   "/resend-verification",
@@ -16,7 +17,7 @@ router.get(
   authMiddleware,
   userController.verificationStatus,
 );
-router.post("/login", userController.login);
+router.post("/login", loginLimiter, userController.login);
 router.post("/logout", userController.logout);
 
 module.exports = router;
