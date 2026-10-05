@@ -8,6 +8,8 @@ const {
   verifyUser,
 } = require("../../setup");
 
+const Customer = require("../../../app/models/CustomerModel");
+
 let token;
 
 beforeAll(async () => {
@@ -50,6 +52,17 @@ const sampleCustomer = {
   nip: "1234567890",
 };
 
+const createCustomer = async (data = sampleCustomer) => {
+  await request(app)
+    .post("/customers/add")
+    .set("Authorization", token)
+    .send(data);
+  const listRes = await request(app)
+    .get("/customers")
+    .set("Authorization", token);
+  return listRes.body.data.find((c) => c.nip === data.nip)._id;
+};
+
 describe("Authorization", () => {
   it("rejects requests without a token", async () => {
     const res = await request(app).get("/customers");
@@ -81,6 +94,16 @@ describe("POST /customers/add", () => {
       .send({ ...sampleCustomer, name: "Inna Firma" });
 
     expect(res.statusCode).toBe(409);
+  });
+
+  it("ignores fields outside the allowed list on create", async () => {
+    await request(app)
+      .post("/customers/add")
+      .set("Authorization", token)
+      .send({ ...sampleCustomer, actions: ["000000000000000000000001"] });
+
+    const saved = await Customer.findOne({ nip: sampleCustomer.nip });
+    expect(saved.actions).toHaveLength(0);
   });
 });
 
@@ -146,6 +169,61 @@ describe("PUT /customers/edit/:id", () => {
       .send({ name: "Nowa Nazwa" });
 
     expect(res.statusCode).toBe(200);
+  });
+
+  it("ignores an owner in the update request", async () => {
+    const customerId = await createCustomer();
+
+    await request(app)
+      .put(`/customers/edit/${customerId}`)
+      .set("Authorization", token)
+      .send({ name: "Nowa Nazwa", owner: "000000000000000000000099" });
+
+    const res = await request(app)
+      .get(`/customers/${customerId}`)
+      .set("Authorization", token);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.name).toBe("Nowa Nazwa");
+  });
+
+  it("ignores MongoDB operations in the update request", async () => {
+    const customerId = await createCustomer();
+
+    await request(app)
+      .put(`/customers/edit/${customerId}`)
+      .set("Authorization", token)
+      .send({ $unset: { name: "" } });
+
+    const res = await request(app)
+      .get(`/customers/${customerId}`)
+      .set("Authorization", token);
+    expect(res.body.name).toBe(sampleCustomer.name);
+  });
+
+  it("rejects an update that fails validation", async () => {
+    const customerId = await createCustomer();
+
+    const res = await request(app)
+      .put(`/customers/edit/${customerId}`)
+      .set("Authorization", token)
+      .send({ name: "" });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("rejects an update to a NIP that already exists", async () => {
+    await createCustomer();
+    const secondId = await createCustomer({
+      ...sampleCustomer,
+      nip: "0987654321",
+    });
+
+    const res = await request(app)
+      .put(`/customers/edit/${secondId}`)
+      .set("Authorization", token)
+      .send({ nip: sampleCustomer.nip });
+
+    expect(res.statusCode).toBe(409);
   });
 });
 

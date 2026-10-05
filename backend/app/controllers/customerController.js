@@ -1,4 +1,7 @@
 const Customer = require("../models/CustomerModel");
+const pickFields = require("../helpers/pickFields");
+
+const CUSTOMER_FIELDS = ["name", "address", "nip"];
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -83,7 +86,10 @@ module.exports = {
       });
   },
   create: (req, res) => {
-    const newCustomer = new Customer({ ...req.body, owner: req.userId });
+    const newCustomer = new Customer({
+      ...pickFields(req.body, CUSTOMER_FIELDS),
+      owner: req.userId,
+    });
     newCustomer
       .save()
       .then(() => {
@@ -109,7 +115,8 @@ module.exports = {
   update: (req, res) => {
     Customer.findOneAndUpdate(
       { _id: req.params.id, owner: req.userId },
-      req.body,
+      pickFields(req.body, CUSTOMER_FIELDS),
+      { runValidators: true },
     )
       .then((customer) => {
         if (!customer) {
@@ -122,6 +129,18 @@ module.exports = {
         });
       })
       .catch((err) => {
+        if (err.code === 11000) {
+          return res.status(409).json({
+            error: true,
+            message: "Customer with this NIP already exists.",
+          });
+        }
+        if (err.name === "ValidationError" || err.name === "CastError") {
+          return res.status(400).json({
+            error: true,
+            message: "Invalid customer data.",
+          });
+        }
         res.status(500).json({
           error: err,
         });
