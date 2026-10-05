@@ -130,6 +130,44 @@ describe("POST /auth/login", () => {
 
     expect(res.statusCode).toBe(400);
   });
+
+  it("returns the same message for a wrong password and a nonexistent user", async () => {
+    const wrongPassword = await request(app).post("/auth/login").send({
+      email: "jan@example.com",
+      password: "wrongpassword",
+    });
+    const nonexistent = await request(app).post("/auth/login").send({
+      email: "nobody@example.com",
+      password: "password123",
+    });
+
+    expect(wrongPassword.body.message).toBe("Invalid email or password");
+    expect(nonexistent.body.message).toBe("Invalid email or password");
+  });
+
+  it("rejects an email the is not a string", async () => {
+    const res = await request(app)
+      .post("/auth/login")
+      .send({
+        email: { $regex: "^j" },
+        password: "password123",
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("Invalid email or password");
+  });
+
+  it("rejects a password that is not a string", async () => {
+    const res = await request(app)
+      .post("/auth/login")
+      .send({
+        email: "jan@example.com",
+        password: { $ne: "" },
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("Invalid email or password");
+  });
 });
 
 describe("Email verification", () => {

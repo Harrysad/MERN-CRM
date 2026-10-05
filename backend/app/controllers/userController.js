@@ -126,17 +126,24 @@ module.exports = {
       });
   },
   login: (req, res) => {
-    User.findOne({ email: req.body.email })
+    const { email, password } = req.body;
+    const invalidCredentials = () =>
+      res.status(400).json({
+        error: true,
+        message: "Invalid email or password",
+      });
+
+    if (typeof email !== "string" || typeof password !== "string") {
+      return invalidCredentials();
+    }
+
+    User.findOne({ email })
       .then((user) => {
         if (!user) {
-          res.status(400).json({
-            error: true,
-            message: "That user not exist.",
-          });
-          return;
+          return invalidCredentials();
         }
 
-        bcrypt.compare(req.body.password, user.password, (err, logged) => {
+        bcrypt.compare(password, user.password, (err, logged) => {
           if (err) {
             res.status(500).json({
               error: true,
@@ -145,24 +152,20 @@ module.exports = {
             return;
           }
 
-          if (logged) {
-            const token = user.generateAuthToken(user);
-            res.cookie("AuthToken", token, {
-              maxAge: 3600000,
-            });
-            res.status(200).json({
-              name: user.name,
-              jwt: token,
-              role: user.role,
-              verified: user.verified,
-            });
-          } else {
-            res.status(400).json({
-              error: true,
-              message: "Login data do not match",
-            });
-            return;
+          if (!logged) {
+            return invalidCredentials();
           }
+
+          const token = user.generateAuthToken(user);
+          res.cookie("AuthToken", token, {
+            maxAge: 3600000,
+          });
+          res.status(200).json({
+            name: user.name,
+            jwt: token,
+            role: user.role,
+            verified: user.verified,
+          });
         });
       })
       .catch((err) => {
