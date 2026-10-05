@@ -5,6 +5,7 @@ const { sendEmail } = require("../services/emailService");
 const escapeHtml = require("../helpers/escapeHtml");
 
 const RESEND_COOLDOWN_MS = 60 * 1000;
+const MIN_PASSWORD_LENGTH = 8;
 
 const hashToken = (token) =>
   crypto.createHash("sha256").update(token).digest("hex");
@@ -22,6 +23,12 @@ module.exports = {
   create: (req, res) => {
     const verificationToken = crypto.randomBytes(32).toString("hex");
     const { name, email, password } = req.body;
+    if (typeof password !== "string" || password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({
+        error: true,
+        message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long`,
+      });
+    }
     const newUser = User({
       name,
       email,
