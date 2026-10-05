@@ -75,6 +75,22 @@ describe("POST /auth/signup", () => {
     });
     expect(res.statusCode).toBe(400);
   });
+
+  it("ignores a role in the signup request", async () => {
+    await request(app).post("/auth/signup").send({
+      name: "Jan Kowalski",
+      email: "jan@example.com",
+      password: "password123",
+      role: "viewer",
+    });
+
+    const loginRes = await request(app).post("/auth/login").send({
+      email: "jan@example.com",
+      password: "password123",
+    });
+
+    expect(loginRes.body.role).toBe("admin");
+  });
 });
 
 describe("POST /auth/login", () => {
