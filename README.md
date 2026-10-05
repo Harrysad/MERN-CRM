@@ -136,7 +136,7 @@ The scheduled cleanup workflow additionally needs two GitHub repository secrets:
 
 ## API Overview
 
-All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/internal/*` require the JWT in the `Authorization` header. Every account is scoped to its own data — a customer or interaction created by one account is never visible to another. New accounts get the `admin` role by default; a `viewer`-role account can use every `GET` endpoint but gets a `403` on `POST`/`PUT`/`DELETE`. Until its email address is confirmed, an account is treated the same way: reads work, writes return `403`.
+All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/internal/*` require the JWT in the `Authorization` header. Every account is scoped to its own data — a customer or interaction created by one account is never visible to another. New accounts get the `admin` role by default; a `viewer`-role account can use every `GET` endpoint but gets a `403` on `POST`/`PUT`/`DELETE`. Until its email address is confirmed, an account is treated the same way: reads work, writes return `403`. Login, signup and the NIP lookup are rate limited per IP address and answer `429` when the limit is exceeded.
 
 | Method | Endpoint | Description |
 |---|---|---|

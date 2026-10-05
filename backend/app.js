@@ -8,8 +8,11 @@ const nipRouter = require("./app/router/nipRouter");
 const internalRouter = require("./app/router/internalRouter");
 const authMiddleware = require("./app/middlewares/authMiddleware");
 const userRouter = require("./app/router/userRouter");
+const { nipLimiter } = require("./app/middlewares/rateLimiters");
 
 const app = express();
+
+app.set("trust proxy", 1);
 
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -30,7 +33,7 @@ app.use(
 app.use("/auth", userRouter);
 app.use("/customers", authMiddleware, customerRouter);
 app.use("/actions", authMiddleware, actionRouter);
-app.use("/nip", authMiddleware, nipRouter);
+app.use("/nip", nipLimiter, authMiddleware, nipRouter);
 app.use("/internal", internalRouter);
 
 module.exports = app;

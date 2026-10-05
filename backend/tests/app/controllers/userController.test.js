@@ -168,6 +168,28 @@ describe("POST /auth/login", () => {
     expect(res.statusCode).toBe(400);
     expect(res.body.message).toBe("Invalid email or password");
   });
+
+  it("blocks repeated failed logins from the same address", async () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+
+    try {
+      for (let i = 0; i < 10; i++) {
+        await request(app).post("/auth/login").send({
+          email: "jan@example.com",
+          password: "wrongpassword",
+        });
+      }
+
+      const res = await request(app).post("/auth/login").send({
+        email: "jan@example.com",
+        password: "wrongpassword",
+      });
+      expect(res.statusCode).toBe(429);
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+    }
+  });
 });
 
 describe("Email verification", () => {
