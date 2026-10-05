@@ -2,6 +2,7 @@ const User = require("../models/UserModel");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const { sendEmail } = require("../services/emailService");
+const escapeHtml = require("../helpers/escapeHtml");
 
 const RESEND_COOLDOWN_MS = 60 * 1000;
 
@@ -13,7 +14,7 @@ const sendVerificationEmail = (user, token) => {
   return sendEmail({
     to: user.email,
     subject: "Potwierdź swój adres e-mail - CRM Project",
-    html: `<p>Cześć ${user.name}, </p><p>Dziękujemy za rejestrację. Potwierdź swój adres e-mail, klikając w poniższy link:</p><p><a href="${link}">${link}</a></p><p>Jeśli nie zakładałeś/aś tego konta, zignoruj tę wiadomość.</p>`,
+    html: `<p>Cześć ${escapeHtml(user.name)}, </p><p>Dziękujemy za rejestrację. Potwierdź swój adres e-mail, klikając w poniższy link:</p><p><a href="${link}">${link}</a></p><p>Jeśli nie zakładałeś/aś tego konta, zignoruj tę wiadomość.</p>`,
   });
 };
 
