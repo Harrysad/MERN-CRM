@@ -184,4 +184,3 @@ Backend tests run against an in-memory MongoDB, so no database is needed. Fronte
 - Store the JWT in an httpOnly cookie instead of a JavaScript-readable one
 - API documentation (OpenAPI/Swagger)
 - Send emails through a queue and surface delivery failures (verification and deletion emails are currently fire-and-forget)
-- Restrict the signup input to explicit fields (name, email, password) instead of spreading the request body
