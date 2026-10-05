@@ -20,8 +20,11 @@ const sendVerificationEmail = (user, token) => {
 module.exports = {
   create: (req, res) => {
     const verificationToken = crypto.randomBytes(32).toString("hex");
+    const { name, email, password } = req.body;
     const newUser = User({
-      ...req.body,
+      name,
+      email,
+      password,
       verified: false,
       verificationTokenHash: hashToken(verificationToken),
       verificationSentAt: new Date(),
