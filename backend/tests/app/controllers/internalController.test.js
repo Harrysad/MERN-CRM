@@ -210,5 +210,20 @@ describe("POST /internal/cleanup-accounts", () => {
       expect(await User.countDocuments()).toBe(0);
       errorSpy.mockRestore();
     });
+
+    it("escapes HTML in the name in the deletion email", async () => {
+      await createUser({
+        name: '<a href="https://evil.example">Kliknij</a>',
+        email: "stare@example.com",
+        verifies: false,
+        ageDays: 4,
+      });
+
+      await cleanup(SECRET);
+
+      const html = sendEmail.mock.calls[0][0].html;
+      expect(html).not.toContain('<a href="https://evil.example">');
+      expect(html).toContain("&lt;a href=&quot;https://evil.example&quot;&gt;");
+    });
   });
 });

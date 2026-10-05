@@ -190,6 +190,18 @@ describe("Email verification", () => {
     expect(loginRes.body.verified).toBe(false);
   });
 
+  it("escapes HTML in the name in the varification email", async () => {
+    await request(app).post("/auth/signup").send({
+      name: '<a href="https://evil.example">Kliknij</a>',
+      email: "jan@example.com",
+      password: "password123",
+    });
+
+    const html = sendEmail.mock.calls[sendEmail.mock.calls.length - 1][0].html;
+    expect(html).not.toContain('<a href="https://evil.example">');
+    expect(html).toContain("&lt;a href=&quot;https://evil.example&quot;&gt;");
+  });
+
   describe("GET /auth/verify/:token", () => {
     beforeEach(async () => {
       await request(app).post("/auth/signup").send({
