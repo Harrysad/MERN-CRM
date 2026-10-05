@@ -1,5 +1,8 @@
 const Action = require("../models/ActionModel");
 const Customer = require("../models/CustomerModel");
+const pickFields = require("../helpers/pickFields");
+
+const ACTION_FIELDS = ["type", "description", "date"];
 
 module.exports = {
   index: (req, res) => {
@@ -50,7 +53,7 @@ module.exports = {
             .json({ message: "Customer not found, cannot create an action" });
         }
         const newAction = new Action({
-          ...req.body,
+          ...pickFields(req.body, ACTION_FIELDS),
           customer: customer,
           owner: req.userId,
         });
@@ -76,7 +79,8 @@ module.exports = {
   update: (req, res) => {
     Action.findOneAndUpdate(
       { _id: req.params.id, owner: req.userId },
-      req.body,
+      pickFields(req.body, ACTION_FIELDS),
+      { runValidators: true },
     )
       .then((action) => {
         if (!action)
