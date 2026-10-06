@@ -1,0 +1,25 @@
+#!/bin/sh
+
+msg_file="$1"
+subject=$(head -n 1 "$msg_file")
+
+case "$subject" in
+  Merge\ *|Revert\ *|fixup!\ *|squash!\ *) exit 0 ;;
+esac
+
+if ! echo "$subject" | grep -qE '^(feat|fix|docs|chore|refactor|test|ci|style|perf|build)(\([a-z0-9-]+\))?!?: .+'; then
+  echo "Commit subject must follow Conventional Commits, e.g. 'fix(frontend): short description'."
+  exit 1
+fi
+
+if [ "${#subject}" -gt 72 ]; then
+  echo "Commit subject is longer than 72 characters."
+  exit 1
+fi
+
+if grep -v '^#' "$msg_file" | grep -qiE '^co-authored-by:'; then
+  echo "Attribution lines (Co-Authored-By) are not allowed in this repo."
+  exit 1
+fi
+
+exit 0
