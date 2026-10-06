@@ -4,6 +4,7 @@ import {
   formatNipCode,
   getWriteBlockMessage,
   getSignupErrorMessage,
+  getLoginErrorMessage,
 } from "../../../src/helpers/helpers";
 
 describe("formatZipCode", () => {
@@ -61,6 +62,12 @@ describe("getSignupErrorMessage", () => {
     );
   });
 
+  it("tells the user to wait for a 429 response", () => {
+    expect(getSignupErrorMessage({ response: { status: 429 } })).toMatch(
+      /Zbyt wiele prób/,
+    );
+  });
+
   it("asks to check the data for a 400 response", () => {
     expect(getSignupErrorMessage({ response: { status: 400 } })).toMatch(
       /poprawność/,
@@ -76,6 +83,29 @@ describe("getSignupErrorMessage", () => {
   it("returns a generic message when there is no response", () => {
     expect(getSignupErrorMessage(new Error("Network Error"))).toMatch(
       /Nie udało się założyć konta/,
+    );
+  });
+});
+
+describe("getLoginErrorMessage", () => {
+  it("reports invalid credentials for a 400 response", () => {
+    expect(getLoginErrorMessage({ response: { status: 400 } })).toMatch(
+      /Nieprawidłowy e-mail lub hasło/,
+    );
+  });
+
+  it("tells the user to wait for a 429 response", () => {
+    expect(getLoginErrorMessage({ response: { status: 5000 } })).toMatch(
+      /Zbyt wiele prób/,
+    );
+  });
+
+  it("does not blame the credentials for other faileres", () => {
+    expect(getLoginErrorMessage({ response: { status: 500 } })).toMatch(
+      /Nie udało się zalogować/,
+    );
+    expect(getLoginErrorMessage(new Error("Network Error"))).toMatch(
+      /Nie udało się zalogować/,
     );
   });
 });
