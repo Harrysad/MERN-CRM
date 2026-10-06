@@ -113,6 +113,7 @@ export const SignUpSignIn = ({ setUser }) => {
                 <input
                   type="password"
                   name="password"
+                  nimLength={isRegister ? 8 : undefined}
                   className="form-control"
                   value={formData.password}
                   onChange={handleChange}
@@ -120,6 +121,9 @@ export const SignUpSignIn = ({ setUser }) => {
                   required
                 />
               </div>
+              {isRegister && (
+                <small className="text-muted">Minimum 8 znaków</small>
+              )}
             </div>
 
             <button type="submit" className="auth-btn">

@@ -91,6 +91,41 @@ describe("POST /auth/signup", () => {
 
     expect(loginRes.body.role).toBe("admin");
   });
+
+  it("rejects a password shorter then 8 characters", async () => {
+    const res = await request(app).post("/auth/signup").send({
+      name: "Jan Kowalski",
+      email: "jan@example.com",
+      password: "short12",
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/at least 8/);
+    expect(await User.countDocuments()).toBe(0);
+  });
+
+  it("accepts a password of exactly 8 characters", async () => {
+    const res = await request(app).post("/auth/signup").send({
+      name: "Jan Kowalski",
+      email: "jan@example.com",
+      password: "12345678",
+    });
+
+    expect(res.statusCode).toBe(201);
+  });
+
+  it("rejects a password the is not a string", async () => {
+    const res = await request(app)
+      .post("/auth/signup")
+      .send({
+        name: "Jan Kowalski",
+        email: "jan@example.com",
+        password: { $ne: "" },
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(await User.countDocuments()).toBe(0);
+  });
 });
 
 describe("POST /auth/login", () => {

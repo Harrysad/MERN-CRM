@@ -140,7 +140,7 @@ All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/auth/signup` | Register a user |
+| POST | `/auth/signup` | Register a user (the password must have at least 8 characters) |
 | POST | `/auth/login` | Log in, returns a JWT |
 | POST | `/auth/logout` | Log out |
 | GET | `/auth/verify/:token` | Confirm an email address with the token from the verification email |
