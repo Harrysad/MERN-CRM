@@ -1,0 +1,21 @@
+#!/bin/sh
+
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+if [ "$branch" = "main" ]; then
+  echo "Committing directly to main is blocked. Create a branch first: git switch -c <name>"
+  exit 1
+fi
+
+staged=$(git diff --cached --name-only --diff-filter=d)
+
+if echo "$staged" | grep -E '(^|/)\.env($|\.)' | grep -vE '\.env\.example$' | grep -q .; then
+  echo "A .env file is staged. Real secrets must never be committed."
+  exit 1
+fi
+
+if git diff --cached -U0 -- '*.env.example' | grep -qE '^\+(RESEND_API_KEY|INTERNAL_CLEANUP_SECRET)=.+'; then
+  echo "A real value is staged in .env.example. Keep it empty and put secrets in .env only."
+  exit 1
+fi
+
+exit 0

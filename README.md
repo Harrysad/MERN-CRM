@@ -7,12 +7,13 @@ A full-stack Customer Relationship Management system built to practice real-worl
 🔗 **[https://mern-crm-frontend-dfos.onrender.com](https://mern-crm-frontend-dfos.onrender.com)**
 
 Test credentials:
+
 - Email: `demo@example.com`
 - Password: `Demo12345`
 
 The demo account is **read-only**: every feature (including the add/edit forms and the NIP-based autofill) is fully usable, but saving, editing or deleting is blocked with an inline message, so the demo data always stays intact for the next visitor.
 
-*(Free-tier hosting — the backend may take about a minute to wake up on first request.)*
+_(Free-tier hosting — the backend may take about a minute to wake up on first request.)_
 
 Want to try the signup flow? Register your own account (a disposable address from a service like [temp-mail.org](https://temp-mail.org/pl/) works fine) and confirm it with the link sent to that address. Every account except the demo one is deleted automatically 3 days after it was created, together with its data.
 
@@ -34,13 +35,13 @@ Want to try the signup flow? Register your own account (a disposable address fro
 
 ## Tech Stack
 
-| Area | Technologies |
-|---|---|
-| Backend | Node.js, Express, MongoDB, Mongoose, JWT, bcrypt |
-| Frontend | React, Vite, React Router, Axios, React Bootstrap |
-| Testing | Jest, Supertest, mongodb-memory-server (backend); Vitest, Testing Library (frontend) |
-| DevOps | Docker (multi-stage), Docker Compose, GitHub Actions, GitHub Container Registry |
-| Hosting | Render (backend + static frontend), MongoDB Atlas |
+| Area         | Technologies                                                                                           |
+| ------------ | ------------------------------------------------------------------------------------------------------ |
+| Backend      | Node.js, Express, MongoDB, Mongoose, JWT, bcrypt                                                       |
+| Frontend     | React, Vite, React Router, Axios, React Bootstrap                                                      |
+| Testing      | Jest, Supertest, mongodb-memory-server (backend); Vitest, Testing Library (frontend)                   |
+| DevOps       | Docker (multi-stage), Docker Compose, GitHub Actions, GitHub Container Registry                        |
+| Hosting      | Render (backend + static frontend), MongoDB Atlas                                                      |
 | External API | Poland's VAT payer registry ("biała lista podatników", wl-api.mf.gov.pl), Resend (transactional email) |
 
 ## Project Structure
@@ -121,16 +122,16 @@ This requires a running MongoDB instance (set `MONGO_URL` in `backend/.env`).
 
 ### Environment variables
 
-| File | Variable | Description |
-|---|---|---|
-| `backend/.env` | `PORT` | Port the API listens on |
-| `backend/.env` | `MONGO_URL` | MongoDB connection string |
-| `backend/.env` | `JWT_SECRET` | Secret used to sign JWTs |
-| `backend/.env` | `FRONTEND_URL` | Allowed CORS origin and base URL of the links sent by email (the frontend's URL) |
-| `backend/.env` | `RESEND_API_KEY` | Resend API key. When empty (local development), emails are printed to the backend console instead of being sent |
-| `backend/.env` | `EMAIL_FROM` | Sender address, on a domain verified in Resend |
-| `backend/.env` | `INTERNAL_CLEANUP_SECRET` | Shared secret required by the internal cleanup endpoint (`X-Internal-Secret` header) |
-| `frontend/.env` | `VITE_API_URL` | Backend URL (defaults to `http://localhost:5070`) |
+| File            | Variable                  | Description                                                                                                     |
+| --------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `backend/.env`  | `PORT`                    | Port the API listens on                                                                                         |
+| `backend/.env`  | `MONGO_URL`               | MongoDB connection string                                                                                       |
+| `backend/.env`  | `JWT_SECRET`              | Secret used to sign JWTs                                                                                        |
+| `backend/.env`  | `FRONTEND_URL`            | Allowed CORS origin and base URL of the links sent by email (the frontend's URL)                                |
+| `backend/.env`  | `RESEND_API_KEY`          | Resend API key. When empty (local development), emails are printed to the backend console instead of being sent |
+| `backend/.env`  | `EMAIL_FROM`              | Sender address, on a domain verified in Resend                                                                  |
+| `backend/.env`  | `INTERNAL_CLEANUP_SECRET` | Shared secret required by the internal cleanup endpoint (`X-Internal-Secret` header)                            |
+| `frontend/.env` | `VITE_API_URL`            | Backend URL (defaults to `http://localhost:5070`)                                                               |
 
 The scheduled cleanup workflow additionally needs two GitHub repository secrets: `BACKEND_URL` and `INTERNAL_CLEANUP_SECRET` (the same value as on the server).
 
@@ -138,25 +139,25 @@ The scheduled cleanup workflow additionally needs two GitHub repository secrets:
 
 All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/internal/*` require the JWT in the `Authorization` header. Every account is scoped to its own data — a customer or interaction created by one account is never visible to another. New accounts get the `admin` role by default; a `viewer`-role account can use every `GET` endpoint but gets a `403` on `POST`/`PUT`/`DELETE`. Until its email address is confirmed, an account is treated the same way: reads work, writes return `403`. Login, signup and the NIP lookup are rate limited per IP address and answer `429` when the limit is exceeded.
 
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/auth/signup` | Register a user (the password must have at least 8 characters) |
-| POST | `/auth/login` | Log in, returns a JWT |
-| POST | `/auth/logout` | Log out |
-| GET | `/auth/verify/:token` | Confirm an email address with the token from the verification email |
-| POST | `/auth/resend-verification` | Send a new verification link (60 s cooldown) |
-| GET | `/auth/verification-status` | Check whether the current account is verified |
-| GET | `/customers` | List customers. Query: `page`, `limit` (max 100), `sort`, `order`, `search` |
-| GET | `/customers/:id` | Get one customer |
-| POST | `/customers/add` | Create a customer |
-| PUT | `/customers/edit/:id` | Update a customer |
-| DELETE | `/customers/delete/:id` | Delete a customer |
-| GET | `/actions/:customerId` | List a customer's interactions |
-| POST | `/actions/add` | Add an interaction |
-| PUT | `/actions/edit/:id` | Update an interaction |
-| DELETE | `/actions/delete/:id` | Delete an interaction |
-| GET | `/nip/:nip` | Look up a company's name and address by NIP in Poland's VAT payer registry (available to every role) |
-| POST | `/internal/cleanup-accounts` | Delete accounts older than 3 days, except the demo one. Not for users: requires the `X-Internal-Secret` header and is called by the scheduled workflow |
+| Method | Endpoint                     | Description                                                                                                                                            |
+| ------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/auth/signup`               | Register a user (the password must have at least 8 characters)                                                                                         |
+| POST   | `/auth/login`                | Log in, returns a JWT                                                                                                                                  |
+| POST   | `/auth/logout`               | Log out                                                                                                                                                |
+| GET    | `/auth/verify/:token`        | Confirm an email address with the token from the verification email                                                                                    |
+| POST   | `/auth/resend-verification`  | Send a new verification link (60 s cooldown)                                                                                                           |
+| GET    | `/auth/verification-status`  | Check whether the current account is verified                                                                                                          |
+| GET    | `/customers`                 | List customers. Query: `page`, `limit` (max 100), `sort`, `order`, `search`                                                                            |
+| GET    | `/customers/:id`             | Get one customer                                                                                                                                       |
+| POST   | `/customers/add`             | Create a customer                                                                                                                                      |
+| PUT    | `/customers/edit/:id`        | Update a customer                                                                                                                                      |
+| DELETE | `/customers/delete/:id`      | Delete a customer                                                                                                                                      |
+| GET    | `/actions/:customerId`       | List a customer's interactions                                                                                                                         |
+| POST   | `/actions/add`               | Add an interaction                                                                                                                                     |
+| PUT    | `/actions/edit/:id`          | Update an interaction                                                                                                                                  |
+| DELETE | `/actions/delete/:id`        | Delete an interaction                                                                                                                                  |
+| GET    | `/nip/:nip`                  | Look up a company's name and address by NIP in Poland's VAT payer registry (available to every role)                                                   |
+| POST   | `/internal/cleanup-accounts` | Delete accounts older than 3 days, except the demo one. Not for users: requires the `X-Internal-Secret` header and is called by the scheduled workflow |
 
 ## Running Tests
 
@@ -169,6 +170,14 @@ cd frontend && npm test -- run
 ```
 
 Backend tests run against an in-memory MongoDB, so no database is needed. Frontend tests cover the custom hooks (session timeout, debounce, theme, page size), formatting helpers and the pagination and toolbar components. Backend tests also cover per-account data isolation, role-based write restrictions, and the NIP-lookup address parsing. Backend tests also cover email verification (with the email service mocked), the resend cooldown and the account cleanup.
+
+### Git hooks
+
+The repository ships a few Git hooks in `.githooks/`: they enforce Conventional Commits, block commits straight to `main` and commits of `.env` secrets, and run the backend and frontend tests before every push. Enable them once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
 
 ## CI/CD
 

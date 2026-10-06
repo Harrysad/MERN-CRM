@@ -1,0 +1,16 @@
+#!/bin/sh
+
+zero=0000000000000000000000000000000000000000
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$local_sha" = "$zero" ]; then
+    exit 0
+  fi
+done
+
+echo "Running backend tests..."
+(cd backend && npm test) || { echo "Backend tests failed. Push cancelled."; exit 1; }
+
+echo "Running frontend tests..."
+(cd frontend && npm test -- run) || { echo "Frontend tests failed. Push cancelled."; exit 1; }
+
+exit 0
