@@ -7,10 +7,26 @@ while read local_ref local_sha remote_ref remote_sha; do
   fi
 done
 
-echo "Running backend tests..."
-(cd backend && npm test) || { echo "Backend tests failed. Push cancelled."; exit 1; }
+run_tests() {
+  label=$1
+  dir=$2
+  marker=$3
+  shift 3
 
-echo "Running frontend tests..."
-(cd frontend && npm test -- run) || { echo "Frontend tests failed. Push cancelled."; exit 1; }
+  output=$(cd "$dir" && FORCE_COLOR=1 "$@" 2>&1)
+  status=$?
+
+  if [ "$status" -ne 0 ]; then
+    echo "$output"
+    echo "$label tests failed. Push cancelled."
+    exit 1
+  fi
+
+  echo "$output"
+  echo
+}
+
+run_tests "Backend" backend "Test Suites:" npm test -- --silent
+run_tests "Frontend" frontend "Test Files" npm test -- run --silent
 
 exit 0
