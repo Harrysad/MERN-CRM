@@ -95,7 +95,7 @@ describe("getLoginErrorMessage", () => {
   });
 
   it("tells the user to wait for a 429 response", () => {
-    expect(getLoginErrorMessage({ response: { status: 5000 } })).toMatch(
+    expect(getLoginErrorMessage({ response: { status: 429 } })).toMatch(
       /Zbyt wiele prób/,
     );
   });
