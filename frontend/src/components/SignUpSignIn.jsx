@@ -2,7 +2,11 @@ import { useState } from "react";
 import "./SignUpSignIn.css";
 import { addUser, logInUser } from "../apiService/user/apiUser";
 import { useNavigate } from "react-router-dom";
-import { setCookie, getSignupErrorMessage } from "../helpers/helpers";
+import {
+  setCookie,
+  getSignupErrorMessage,
+  getLoginErrorMessage,
+} from "../helpers/helpers";
 import SignupSuccessModal from "./modals/SignupSuccessModal";
 
 export const SignUpSignIn = ({ setUser }) => {
@@ -42,7 +46,7 @@ export const SignUpSignIn = ({ setUser }) => {
           setUser(user);
           navigate("/");
         })
-        .catch(() => setError("Nieprawidłowy e-mail lub hasło."));
+        .catch(() => setError(getLoginErrorMessage(err)));
     }
   };
 

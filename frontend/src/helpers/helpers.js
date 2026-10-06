@@ -68,14 +68,30 @@ export const getWriteBlockMessage = (isViewer, isVerified) => {
   return null;
 };
 
+const TOO_MANY_REQUESTS_MESSAGE =
+  "Zbyt wiele prób. Spróbuj ponownie za kilka minut.";
+
 export const getSignupErrorMessage = (error) => {
+  if (error?.response?.status === 429) {
+    return TOO_MANY_REQUESTS_MESSAGE;
+  }
   if (error?.response?.status === 409) {
     return "Konto z tym adresem e-mail już istnieje.";
   }
   if (error?.response?.status === 400) {
-    return "Sprawdź poprawność wprowadzonych danych.";
+    return "Sprawdź poprawność danych. Hasło musi mieć co najmniej 8 znaków.";
   }
   return "Nie udało się założyć konta. Spróbuj ponownie później.";
+};
+
+export const getLoginErrorMessage = (error) => {
+  if (error?.response?.status === 429) {
+    return TOO_MANY_REQUESTS_MESSAGE;
+  }
+  if (error?.response?.status === 400) {
+    return "Nieprawidłowy e-mail lub hasło.";
+  }
+  return "Nie udało się zalogować. Spróbuj ponownie później.";
 };
 
 export const deleteCookie = (cname) => {
