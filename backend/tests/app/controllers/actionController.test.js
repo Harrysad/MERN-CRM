@@ -150,6 +150,22 @@ describe("GET /actions/:customerId", () => {
 
     expect(res.body.data).toHaveLength(0);
   });
+
+  it("caps the page size at 100", async () => {
+    const res = await request(app)
+      .get(`/actions/${customerId}?limit=1000`)
+      .set("Authorization", token);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.limit).toBe(100);
+  });
+
+  it("falls back to the first page for invalid page numbers", async () => {
+    const res = await request(app)
+      .get(`/actions/${customerId}?page=-3`)
+      .set("Authorization", token);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.page).toBe(1);
+  });
 });
 
 describe("PUT /actions/edit/:id", () => {

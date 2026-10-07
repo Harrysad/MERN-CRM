@@ -2,14 +2,14 @@ const Action = require("../models/ActionModel");
 const Customer = require("../models/CustomerModel");
 const pickFields = require("../helpers/pickFields");
 const sendServerError = require("../helpers/sendServerError");
+const getPagination = require("../helpers/getPagination");
 
 const ACTION_FIELDS = ["type", "description", "date"];
 
 module.exports = {
   index: (req, res) => {
     const { customerId } = req.params;
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const { page, limit } = getPagination(req.query);
 
     const startIndex = (page - 1) * limit;
 

@@ -9,6 +9,7 @@ const {
 } = require("../../setup");
 
 const Customer = require("../../../app/models/CustomerModel");
+const expectCookies = require("supertest/lib/cookies");
 
 let token;
 
@@ -311,6 +312,52 @@ describe("GET /customers?search=", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.data).toHaveLength(0);
     expect(res.body.total).toBe(0);
+  });
+
+  it("ignores a search parameter the is not a string", async () => {
+    const res = await request(app)
+      .get("/customers?serach[]=google")
+      .set("Authorization", token);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.total).toBe(2);
+  });
+});
+
+describe("GET /customers sorting", () => {
+  beforeEach(async () => {
+    for (const customer of [
+      { name: "Beta", nip: "2222222222" },
+      { name: "Alpha", nip: "3333333333" },
+    ]) {
+      await request(app)
+        .post("/customers/add")
+        .set("Authorization", token)
+        .send({ ...sampleCustomer, ...customer });
+    }
+  });
+
+  it("sorts by NIP when requested", async () => {
+    const res = await request(app)
+      .get("/customers?sort=nip")
+      .set("Authorization", token);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.map((c) => c.name)).toEqual(["Beta", "Alpha"]);
+  });
+
+  it("falls back to sorting by name for a field outside the allowed list", async () => {
+    const res = await request(app)
+      .get("/customers?sort=owner")
+      .set("Authorization", token);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.map((c) => c.name)).toEqual(["Alpha", "Beta"]);
+  });
+
+  it("does not fail on a sort parameter that is not a string", async () => {
+    const res = await request(app)
+      .get("/customers?sort[]=nip")
+      .set("Authorization", token);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.map((c) => c.name)).toEqual(["Alpha", "Beta"]);
   });
 });
 
