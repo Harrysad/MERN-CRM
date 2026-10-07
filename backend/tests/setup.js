@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 const User = require("../app/models/UserModel");
-const requireWriteAccess = require("../app/middlewares/requireWriteAccess");
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test_secret_key";
 
