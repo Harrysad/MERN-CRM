@@ -141,7 +141,7 @@ module.exports = {
       return invalidCredentials();
     }
 
-    User.findOne({ email })
+    User.findOne({ email: email.trim().toLowerCase() })
       .then((user) => {
         if (!user) {
           return invalidCredentials();

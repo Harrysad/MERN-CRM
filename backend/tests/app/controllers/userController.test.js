@@ -147,6 +147,33 @@ describe("POST /auth/signup", () => {
     saltSpy.mockRestore();
     errorSpy.mockRestore();
   });
+
+  it("stores the email address in lower case", async () => {
+    const res = await request(app).post("/auth/signup").send({
+      name: "Jan Kowalski",
+      email: "  Jan@Example.COM ",
+      password: "password123",
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.email).toBe("jan@example.com");
+  });
+
+  it("rejects an email that differs only in letter case", async () => {
+    await request(app).post("/auth/signup").send({
+      name: "Jan Kowalski",
+      email: "jan@example.com",
+      password: "password123",
+    });
+
+    const res = await request(app).post("/auth/signup").send({
+      name: "Inny Jan",
+      email: "JAN@EXAMPLE.COM",
+      password: "password123",
+    });
+
+    expect(res.statusCode).toBe(409);
+  });
 });
 
 describe("POST /auth/login", () => {
@@ -245,6 +272,16 @@ describe("POST /auth/login", () => {
     } finally {
       process.env.NODE_ENV = originalEnv;
     }
+  });
+
+  it("logs in with an email written in a different letter case", async () => {
+    const res = await request(app).post("/auth/login").send({
+      email: "  JAN@Example.com ",
+      password: "password123",
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.jwt).toBeDefined();
   });
 });
 
