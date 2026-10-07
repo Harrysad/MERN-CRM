@@ -343,6 +343,28 @@ describe("GET /customers pagination limits", () => {
   });
 });
 
+describe("Server errors", () => {
+  it("does not leak internal error details", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const countSpy = jest
+      .spyOn(Customer, "countDocuments")
+      .mockReturnValueOnce(Promise.reject(new Error("internal secret detail")));
+
+    const res = await request(app)
+      .get("/customers")
+      .set("Authorization", token);
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toEqual({
+      error: true,
+      message: "Internal server error.",
+    });
+
+    countSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+});
+
 describe("Data isolation between accounts", () => {
   let otherToken;
 

@@ -86,9 +86,7 @@ module.exports = {
         });
       })
       .catch((err) => {
-        res.status(500).json({
-          error: err,
-        });
+        sendServerError(res, err);
       });
   },
   resendVerification: (req, res) => {
@@ -128,9 +126,7 @@ module.exports = {
         });
       })
       .catch((err) => {
-        res.status(500).json({
-          error: err,
-        });
+        sendServerError(res, err);
       });
   },
   login: (req, res) => {
@@ -153,10 +149,7 @@ module.exports = {
 
         bcrypt.compare(password, user.password, (err, logged) => {
           if (err) {
-            res.status(500).json({
-              error: true,
-              message: "Login error",
-            });
+            sendServerError(res, err);
             return;
           }
 
@@ -177,9 +170,7 @@ module.exports = {
         });
       })
       .catch((err) => {
-        res.status(500).json({
-          error: err,
-        });
+        sendServerError(res, err);
       });
   },
   verificationStatus: (req, res) => {
@@ -196,9 +187,7 @@ module.exports = {
         });
       })
       .catch((err) => {
-        res.status(500).json({
-          error: err,
-        });
+        sendServerError(res, err);
       });
   },
   logout: (_req, res) => {

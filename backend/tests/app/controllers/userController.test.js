@@ -126,6 +126,27 @@ describe("POST /auth/signup", () => {
     expect(res.statusCode).toBe(400);
     expect(await User.countDocuments()).toBe(0);
   });
+
+  it("answers 500 when hashing the password fails", async () => {
+    const bcrypt = require("bcrypt");
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const saltSpy = jest
+      .spyOn(bcrypt, "genSalt")
+      .mockImplementation((rounds, callback) =>
+        callback(new Error("hash failure")),
+      );
+
+    const res = await request(app).post("/auth/signup").send({
+      name: "Jan Kowalski",
+      email: "jan@example.com",
+      password: "password123",
+    });
+
+    expect(res.statusCode).toBe(500);
+
+    saltSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
 });
 
 describe("POST /auth/login", () => {

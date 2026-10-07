@@ -1,6 +1,7 @@
 const Action = require("../models/ActionModel");
 const Customer = require("../models/CustomerModel");
 const pickFields = require("../helpers/pickFields");
+const sendServerError = require("../helpers/sendServerError");
 
 const ACTION_FIELDS = ["type", "description", "date"];
 
@@ -16,7 +17,7 @@ module.exports = {
 
     Action.countDocuments(filter)
       .then((totalActions) => {
-        Action.find(filter)
+        return Action.find(filter)
           .populate("customer", "name")
           .skip(startIndex)
           .limit(limit)
@@ -34,7 +35,7 @@ module.exports = {
           });
       })
       .catch((err) => {
-        res.status(500).json({ error: err });
+        sendServerError(res, err);
       });
   },
   create: (req, res) => {
@@ -69,11 +70,11 @@ module.exports = {
             res.status(201).json(newAction);
           })
           .catch((err) => {
-            res.status(500).json({ error: err });
+            sendServerError(res, err);
           });
       })
       .catch((err) => {
-        res.status(500).json({ error: err });
+        sendServerError(res, err);
       });
   },
   update: (req, res) => {
@@ -90,7 +91,13 @@ module.exports = {
           .json({ message: "Action edited successfully", action: action });
       })
       .catch((err) => {
-        res.status(400).json({ error: err });
+        if (err.name === "ValidationError" || err.name === "CastError") {
+          return res.status(400).json({
+            error: true,
+            message: "Invalid action data.",
+          });
+        }
+        sendServerError(res, err);
       });
   },
   delete: (req, res) => {
@@ -109,11 +116,11 @@ module.exports = {
             });
           })
           .catch((err) => {
-            res.status(500).json({ error: err });
+            sendServerError(res, err);
           });
       })
       .catch((err) => {
-        res.status(500).json({ error: err });
+        sendServerError(res, err);
       });
   },
 };

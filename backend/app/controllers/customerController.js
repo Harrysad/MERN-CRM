@@ -1,5 +1,6 @@
 const Customer = require("../models/CustomerModel");
 const pickFields = require("../helpers/pickFields");
+const sendServerError = require("../helpers/sendServerError");
 
 const CUSTOMER_FIELDS = ["name", "address", "nip"];
 
@@ -56,15 +57,11 @@ module.exports = {
             });
           })
           .catch((err) => {
-            res.status(500).json({
-              error: err,
-            });
+            sendServerError(res, err);
           });
       })
       .catch((err) => {
-        res.status(500).json({
-          error: err,
-        });
+        sendServerError(res, err);
       });
   },
   customer: (req, res) => {
@@ -141,9 +138,7 @@ module.exports = {
             message: "Invalid customer data.",
           });
         }
-        res.status(500).json({
-          error: err,
-        });
+        sendServerError(res, err);
       });
   },
   delete: (req, res) => {
@@ -160,9 +155,7 @@ module.exports = {
         });
       })
       .catch((err) => {
-        res.status(500).json({
-          error: err,
-        });
+        sendServerError(res, err);
       });
   },
 };
