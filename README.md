@@ -37,7 +37,7 @@ Want to try the signup flow? Register your own account (a disposable address fro
 
 | Area         | Technologies                                                                                           |
 | ------------ | ------------------------------------------------------------------------------------------------------ |
-| Backend      | Node.js, Express, MongoDB, Mongoose, JWT, bcrypt                                                       |
+| Backend      | Node.js, Express, MongoDB, Mongoose, JWT, bcrypt, helmet, express-rate-limit                           |
 | Frontend     | React, Vite, React Router, Axios, React Bootstrap                                                      |
 | Testing      | Jest, Supertest, mongodb-memory-server (backend); Vitest, Testing Library (frontend)                   |
 | DevOps       | Docker (multi-stage), Docker Compose, GitHub Actions, GitHub Container Registry                        |
@@ -52,6 +52,7 @@ mern-crm/
 │   ├── ci.yml                    # tests + Docker build validation on every PR
 │   ├── cd.yml                    # publishes Docker images to GHCR on push to main
 │   └── cleanup-accounts.yml      # daily cleanup of expired accounts
+├── .githooks/                    # git hooks: commit format, protected main, tests before push
 ├── docker-compose.yml            # local dev: MongoDB + backend + frontend
 ├── backend/                      # Express REST API
 │   ├── server.js                 # entry point: DB connection + listen
@@ -60,13 +61,14 @@ mern-crm/
 │   ├── app/
 │   │   ├── configs/              # database connection
 │   │   ├── controllers/          # request handlers (user, customer, action, NIP lookup, internal cleanup)
-│   │   ├── middlewares/          # JWT auth, write access (role + email verification), internal secret check
+│   │   ├── helpers/              # pagination, field whitelisting, HTML escaping, error responses
+│   │   ├── middlewares/          # JWT auth, write access (role + email verification), rate limiting, internal secret check
 │   │   ├── models/               # Mongoose schemas (User with role, Customer, Action — both scoped by owner)
 │   │   ├── router/               # route definitions
 │   │   └── services/             # email sending (Resend) and account retention
 │   └── tests/                    # Jest + Supertest, mirrors app/
 │       ├── setup.js              # in-memory MongoDB helpers
-│       └── app/controllers/
+│       └── app/                  # controllers, helpers, middlewares, services
 └── frontend/                     # React (Vite) client
     ├── Dockerfile                # multi-stage: dev (Vite) / production (nginx)
     ├── src/
@@ -87,6 +89,7 @@ mern-crm/
 ## Run with Docker (recommended)
 
 No local Node.js or MongoDB installation required.
+The MongoDB port is published on `127.0.0.1` only, so a tool such as Compass can connect at `mongodb://localhost:27017` from the same computer, while nothing else on the network can reach the database.
 
 ```bash
 docker compose up
@@ -137,7 +140,7 @@ The scheduled cleanup workflow additionally needs two GitHub repository secrets:
 
 ## API Overview
 
-All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/internal/*` require the JWT in the `Authorization` header. Every account is scoped to its own data — a customer or interaction created by one account is never visible to another. New accounts get the `admin` role by default; a `viewer`-role account can use every `GET` endpoint but gets a `403` on `POST`/`PUT`/`DELETE`. Until its email address is confirmed, an account is treated the same way: reads work, writes return `403`. Login, signup and the NIP lookup are rate limited per IP address and answer `429` when the limit is exceeded.
+All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/internal/*` require the JWT in the `Authorization` header. Every account is scoped to its own data — a customer or interaction created by one account is never visible to another. New accounts get the `admin` role by default; a `viewer`-role account can use every `GET` endpoint but gets a `403` on `POST`/`PUT`/`DELETE`. Until its email address is confirmed, an account is treated the same way: reads work, writes return `403`. Login, signup and the NIP lookup are rate limited per IP address and answer `429` when the limit is exceeded. Responses carry standard security headers (via helmet), and server errors return a generic JSON message instead of internal details.
 
 | Method | Endpoint                     | Description                                                                                                                                            |
 | ------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -147,17 +150,27 @@ All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/
 | GET    | `/auth/verify/:token`        | Confirm an email address with the token from the verification email                                                                                    |
 | POST   | `/auth/resend-verification`  | Send a new verification link (60 s cooldown)                                                                                                           |
 | GET    | `/auth/verification-status`  | Check whether the current account is verified                                                                                                          |
-| GET    | `/customers`                 | List customers. Query: `page`, `limit` (max 100), `sort`, `order`, `search`                                                                            |
+| GET    | `/customers`                 | List customers. Query: `page`, `limit` (max 100), `sort` (`name`, `address.postcode` or `nip`), `order`, `search`                                      |                                                                            |
 | GET    | `/customers/:id`             | Get one customer                                                                                                                                       |
 | POST   | `/customers/add`             | Create a customer                                                                                                                                      |
 | PUT    | `/customers/edit/:id`        | Update a customer                                                                                                                                      |
 | DELETE | `/customers/delete/:id`      | Delete a customer                                                                                                                                      |
-| GET    | `/actions/:customerId`       | List a customer's interactions                                                                                                                         |
+| GET    | `/actions/:customerId`       | List a customer's interactions. Query: `page`, `limit` (max 100)                                                                                       |
 | POST   | `/actions/add`               | Add an interaction                                                                                                                                     |
 | PUT    | `/actions/edit/:id`          | Update an interaction                                                                                                                                  |
 | DELETE | `/actions/delete/:id`        | Delete an interaction                                                                                                                                  |
 | GET    | `/nip/:nip`                  | Look up a company's name and address by NIP in Poland's VAT payer registry (available to every role)                                                   |
 | POST   | `/internal/cleanup-accounts` | Delete accounts older than 3 days, except the demo one. Not for users: requires the `X-Internal-Secret` header and is called by the scheduled workflow |
+
+## Security
+
+- Passwords are hashed with bcrypt and must have at least 8 characters; sessions use short-lived JWTs (1 hour) with a 5-minute inactivity logout.
+- Every account is scoped to its own data, and role and email-verification checks are enforced on the server for every write.
+- Input is validated on the server: only whitelisted fields are accepted on signup, create and update, login credentials must be strings, and list parameters (`page`, `limit`, `sort`, `search`) are validated. The search is regex-escaped, and user names are HTML-escaped in outgoing emails.
+- Login, signup and the NIP lookup are rate limited per IP, responses carry helmet's security headers, and errors return a generic message instead of internal details.
+- Verification tokens are random and stored only as SHA-256 hashes; the internal cleanup endpoint compares its secret in constant time and is disabled when no secret is set.
+- Secrets live in `.env` files that are git-ignored, a Git hook refuses commits that stage them, and the development MongoDB port is bound to localhost.
+- Demo data is temporary: every account except the demo one is deleted after 3 days.
 
 ## Running Tests
 
@@ -169,7 +182,7 @@ cd backend && npm test
 cd frontend && npm test -- run
 ```
 
-Backend tests run against an in-memory MongoDB, so no database is needed. Frontend tests cover the custom hooks (session timeout, debounce, theme, page size), formatting helpers and the pagination and toolbar components. Backend tests also cover per-account data isolation, role-based write restrictions, and the NIP-lookup address parsing. Backend tests also cover email verification (with the email service mocked), the resend cooldown and the account cleanup.
+Backend tests run against an in-memory MongoDB, so no database is needed. They cover authentication and email verification (with the email service mocked), per-account data isolation, role-based write restrictions, the account cleanup, rate limiting, input validation and the NIP-lookup address parsing. Frontend tests cover the custom hooks (session timeout, debounce, countdown, theme, page size), formatting and message helpers, and the pagination, toolbar, action list and modal components.
 
 ### Git hooks
 
