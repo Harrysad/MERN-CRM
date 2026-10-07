@@ -1,24 +1,22 @@
 const Customer = require("../models/CustomerModel");
 const pickFields = require("../helpers/pickFields");
 const sendServerError = require("../helpers/sendServerError");
+const getPagination = require("../helpers/getPagination");
 
 const CUSTOMER_FIELDS = ["name", "address", "nip"];
+const SORT_FIELDS = ["name", "address.postcode", "nip"];
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const MAX_LIMIT = 100;
-const DEFAULT_LIMIT = 10;
-
 module.exports = {
   index: (req, res) => {
-    const requestedPage = parseInt(req.query.page);
-    const requestedLimit = parseInt(req.query.limit);
-    const page = requestedPage > 0 ? requestedPage : 1;
-    const limit =
-      requestedLimit > 0 ? Math.min(requestedLimit, MAX_LIMIT) : DEFAULT_LIMIT;
-    const sortField = req.query.sort || "name";
+    const { page, limit } = getPagination(req.query);
+    const sortField = SORT_FIELDS.includes(req.query.sort)
+      ? req.query.sort
+      : "name";
     const sortOrder = req.query.order === "desc" ? -1 : 1;
-    const search = req.query.search?.trim();
+    const search =
+      typeof req.query.search === "string" ? req.query.search.trim() : "";
 
     const filter = {
       owner: req.userId,
