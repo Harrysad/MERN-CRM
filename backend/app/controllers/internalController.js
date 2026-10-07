@@ -8,9 +8,7 @@ module.exports = {
       })
       .catch((err) => {
         console.error("Błąd sprzątania kont: ", err);
-        res.status(500).json({
-          message: "Cleanup failed.",
-        });
+        sendServerError(res, err);
       });
   },
 };
