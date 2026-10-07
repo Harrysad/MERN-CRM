@@ -426,3 +426,52 @@ describe("Email verification", () => {
     });
   });
 });
+
+describe("Security headers and error handling", () => {
+  it("sets security headers and hides the framework name", async () => {
+    const res = await request(app).post("/auth/logout");
+
+    expect(res.headers["x-powered-by"]).toBeUndefined();
+    expect(res.headers["x-content-type-options"]).toBe("nosniff");
+  });
+
+  it("answers 400 with JSON for a malformed request body", async () => {
+    const res = await request(app)
+      .post("/auth/login")
+      .set("Content-Type", "application/json")
+      .send('{"email": ');
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: true, message: "Invalid JSON body." });
+  });
+
+  it("answers 413 with JSON for a payload that is too large", async () => {
+    const res = await request(app)
+      .post("/auth/signup")
+      .send({ name: "a".repeat(200000) });
+
+    expect(res.statusCode).toBe(413);
+    expect(res.body).toEqual({ error: true, message: "Payload too large." });
+  });
+
+  it("answers 500 with a generic message when a handler throws", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const findSpy = jest.spyOn(User, "findOne").mockImplementationOnce(() => {
+      throw new Error("db exploded");
+    });
+
+    const res = await request(app).post("/auth/login").send({
+      email: "jan@example.com",
+      password: "password123",
+    });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toEqual({
+      error: true,
+      message: "Internal server error.",
+    });
+
+    findSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+});
