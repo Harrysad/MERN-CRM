@@ -351,6 +351,52 @@ describe("Email verification", () => {
       const res = await request(app).get(`/auth/verify/${token}`);
       expect(res.statusCode).toBe(400);
     });
+
+    it("rejects an expired token", async () => {
+      const token = extractVerificationToken();
+      await User.updateOne(
+        { email: "jan@example.com" },
+        { verificationSentAt: new Date(Date.now() - 25 * 60 * 60 * 1000) },
+      );
+
+      const res = await request(app).get(`/auth/verify/${token}`);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toMatch(/wygasł/);
+    });
+
+    it("accepts a token that is still within its lifetime", async () => {
+      const token = extractVerificationToken();
+      await User.updateOne(
+        { email: "jan@example.com" },
+        { verificationSentAt: new Date(Date.now() - 23 * 60 * 60 * 1000) },
+      );
+
+      const res = await request(app).get(`/auth/verify/${token}`);
+
+      expect(res.statusCode).toBe(200);
+    });
+
+    it("allows requesting a new link once the old one has expired", async () => {
+      await User.updateOne(
+        { email: "jan@example.com" },
+        { verificationSentAt: new Date(Date.now() - 25 * 60 * 60 * 1000) },
+      );
+      const loginRes = await request(app).post("/auth/login").send({
+        email: "jan@example.com",
+        password: "password123",
+      });
+
+      const resendRes = await request(app)
+        .post("/auth/resend-verification")
+        .set("Authorization", loginRes.body.jwt);
+      expect(resendRes.statusCode).toBe(200);
+
+      const res = await request(app).get(
+        `/auth/verify/${extractVerificationToken()}`,
+      );
+      expect(res.statusCode).toBe(200);
+    });
   });
 
   describe("POST /auth/resend-verification", () => {

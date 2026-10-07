@@ -5,6 +5,7 @@ const { sendEmail } = require("../services/emailService");
 const escapeHtml = require("../helpers/escapeHtml");
 
 const RESEND_COOLDOWN_MS = 60 * 1000;
+const VERIFICATION_LINK_TTL_MS = 24 * 60 * 60 * 1000;
 const MIN_PASSWORD_LENGTH = 8;
 
 const hashToken = (token) =>
@@ -15,7 +16,7 @@ const sendVerificationEmail = (user, token) => {
   return sendEmail({
     to: user.email,
     subject: "Potwierdź swój adres e-mail - CRM Project",
-    html: `<p>Cześć ${escapeHtml(user.name)}, </p><p>Dziękujemy za rejestrację. Potwierdź swój adres e-mail, klikając w poniższy link:</p><p><a href="${link}">${link}</a></p><p>Jeśli nie zakładałeś/aś tego konta, zignoruj tę wiadomość.</p>`,
+    html: `<p>Cześć ${escapeHtml(user.name)}, </p><p>Dziękujemy za rejestrację. Potwierdź swój adres e-mail, klikając w poniższy link:</p><p><a href="${link}">${link}</a></p><p>Link jest ważny przez 24 godziny.</p><p>Jeśli nie zakładałeś/aś tego konta, zignoruj tę wiadomość.</p>`,
   });
 };
 
@@ -75,6 +76,13 @@ module.exports = {
         if (!user) {
           return res.status(400).json({
             message: "Nieprawidłowy lub już użyty link weryfikacyjny.",
+          });
+        }
+        const sentAt = user.verificationSentAt?.getTime() ?? 0;
+        if (Date.now() - sentAt > VERIFICATION_LINK_TTL_MS) {
+          return res.status(400).json({
+            message:
+              "Link weryfikacyjny wygasł. Zaloguj się i poproś o nowy link.",
           });
         }
         user.verified = true;

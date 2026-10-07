@@ -22,7 +22,7 @@ Want to try the signup flow? Register your own account (a disposable address fro
 - 🔐 JWT authentication (register, login, logout)
 - 🛡️ Role-based access control: every account is `admin` over its own data by default; a `viewer` role can read everything but is blocked from creating, editing or deleting records
 - 🔒 Per-account data isolation: every customer and interaction belongs to the account that created it — no account can see, edit or delete another account's data
-- ✉️ Email verification: a new account must confirm its address through a link sent by email (Resend); until then it is read-only. The link can be re-sent after a 60-second cooldown
+- ✉️ Email verification: a new account must confirm its address through a link sent by email (Resend); until then it is read-only. The link is valid for 24 hours and can be re-sent after a 60-second cooldown
 - 🧹 Automatic cleanup: every account except the demo one is deleted with all its data 3 days after it was created, by a scheduled GitHub Actions workflow that calls a secret-protected endpoint; the owner is notified by email
 - 🏢 NIP-based company autofill: looks up a company by NIP in Poland's official VAT payer registry and fills in the name and address automatically
 - ⏱️ Automatic logout after 5 minutes of inactivity, with a warning modal one minute before the session expires
@@ -147,7 +147,7 @@ All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/
 | POST   | `/auth/signup`               | Register a user (the password must have at least 8 characters)                                                                                         |
 | POST   | `/auth/login`                | Log in, returns a JWT                                                                                                                                  |
 | POST   | `/auth/logout`               | Log out                                                                                                                                                |
-| GET    | `/auth/verify/:token`        | Confirm an email address with the token from the verification email                                                                                    |
+| GET    | `/auth/verify/:token`        | Confirm an email address with the token from the verification email (valid for 24 hours)                                                                                    |
 | POST   | `/auth/resend-verification`  | Send a new verification link (60 s cooldown)                                                                                                           |
 | GET    | `/auth/verification-status`  | Check whether the current account is verified                                                                                                          |
 | GET    | `/customers`                 | List customers. Query: `page`, `limit` (max 100), `sort` (`name`, `address.postcode` or `nip`), `order`, `search`                                      |                                                                            |
