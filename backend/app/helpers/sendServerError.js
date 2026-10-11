@@ -1,5 +1,3 @@
-const { setDefaultHighWaterMark } = require("supertest/lib/test");
-
 const sendServerError = (res, err) => {
   console.error("Server error: ", err);
   res.status(500).json({
