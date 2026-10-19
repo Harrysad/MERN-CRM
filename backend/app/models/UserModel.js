@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const getSaltRounds = require("../helpers/getSaltRounds");
 
 const User = new mongoose.Schema(
   {
@@ -30,7 +31,7 @@ User.pre("save", function (next) {
     return next();
   }
 
-  bcrypt.genSalt(10, function (err, salt) {
+  bcrypt.genSalt(getSaltRounds(), function (err, salt) {
     if (err) {
       return next(err);
     }
