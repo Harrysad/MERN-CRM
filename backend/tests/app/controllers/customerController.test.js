@@ -9,7 +9,6 @@ const {
 } = require("../../setup");
 
 const Customer = require("../../../app/models/CustomerModel");
-const expectCookies = require("supertest/lib/cookies");
 
 let token;
 
