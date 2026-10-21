@@ -122,6 +122,7 @@ npm run dev
 ```
 
 This requires a running MongoDB instance (set `MONGO_URL` in `backend/.env`).
+It needs Node.js 24.16 or newer (see `.nvmrc`); older 24.x releases crash on Windows because of a libuv bug.
 
 ### Environment variables
 

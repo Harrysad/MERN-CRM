@@ -10,6 +10,9 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
+  "engines": {
+    "node": ">=24.16.0"
+  },
   "dependencies": {
     "axios": "^1.7.7",
     "bootstrap": "^5.3.3",
