@@ -4,6 +4,9 @@
     "dev": "nodemon server.js",
     "test": "jest --runInBand"
   },
+  "engines": {
+    "node": ">=24.16.0"
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
