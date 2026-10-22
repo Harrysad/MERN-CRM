@@ -1,10 +1,12 @@
-const dotenv = require('dotenv');
+const dotenv = require("dotenv");
 dotenv.config();
 
-const { connectDB } = require('./app/configs/config');
-const app = require('./app');
+const { connectDB } = require("./app/configs/config");
+const app = require("./app");
+const { startOutboxWorker } = require("./app/services/emailOutbox");
 
 connectDB();
+startOutboxWorker();
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {

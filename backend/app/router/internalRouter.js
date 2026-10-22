@@ -9,5 +9,6 @@ router.post(
   requireInternalSecret,
   internalController.cleanupAccounts,
 );
+router.get("/emails", requireInternalSecret, internalController.emailStats);
 
 module.exports = router;
