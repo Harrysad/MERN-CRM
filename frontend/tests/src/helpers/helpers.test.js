@@ -5,6 +5,7 @@ import {
   getWriteBlockMessage,
   getSignupErrorMessage,
   getLoginErrorMessage,
+  getEmailStatusMessage,
 } from "../../../src/helpers/helpers";
 
 describe("formatZipCode", () => {
@@ -107,5 +108,24 @@ describe("getLoginErrorMessage", () => {
     expect(getLoginErrorMessage(new Error("Network Error"))).toMatch(
       /Nie udało się zalogować/,
     );
+  });
+});
+
+describe("getEmailStatusMessage", () => {
+  it("returns nothing when the email was sent", () => {
+    expect(getEmailStatusMessage("sent")).toBeNull();
+  });
+
+  it("returns nothing when the status is unknown", () => {
+    expect(getEmailStatusMessage(null)).toBeNull();
+    expect(getEmailStatusMessage(undefined)).toBeNull();
+  });
+
+  it("explains that the delivery is delayed while it is retried", () => {
+    expect(getEmailStatusMessage("pending")).toMatch(/opóźnia/);
+  });
+
+  it("asks the user to resend the link when the delivery failed", () => {
+    expect(getEmailStatusMessage("failed")).toMatch(/Wyślij link ponownie/);
   });
 });

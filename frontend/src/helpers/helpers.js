@@ -94,6 +94,16 @@ export const getLoginErrorMessage = (error) => {
   return "Nie udało się zalogować. Spróbuj ponownie później.";
 };
 
+export const getEmailStatusMessage = (emailStatus) => {
+  if (emailStatus === "failed") {
+    return "Nie udało się wysłać wiadomości z linkiem. Kliknij „Wyślij link ponownie”.";
+  }
+  if (emailStatus === "pending") {
+    return "Wysyłka wiadomości z linkiem się opóźnia, ponawiamy próbę automatycznie.";
+  }
+  return null;
+};
+
 export const deleteCookie = (cname) => {
   document.cookie = cname + "=;Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
 };
