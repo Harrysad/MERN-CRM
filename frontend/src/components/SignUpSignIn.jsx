@@ -46,7 +46,7 @@ export const SignUpSignIn = ({ setUser }) => {
           setUser(user);
           navigate("/");
         })
-        .catch(() => setError(getLoginErrorMessage(err)));
+        .catch((err) => setError(getLoginErrorMessage(err)));
     }
   };
 
