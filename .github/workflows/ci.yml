@@ -42,5 +42,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build backend image
         run: docker build --target production -t crm-backend backend
+      - name: Smoke test the backend image
+        timeout-minutes: 2
+        run: docker run --rm crm-backend node -e "require('./app'); process.exit(0)"
       - name: Build frontend image
         run: docker build --target production -t crm-frontend frontend
