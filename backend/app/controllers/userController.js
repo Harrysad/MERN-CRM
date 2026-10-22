@@ -1,7 +1,10 @@
 const User = require("../models/UserModel");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
-const { sendEmail } = require("../services/emailService");
+const {
+  enqueueEmail,
+  getLatestEmailStatus,
+} = require("../services/emailOutbox");
 const escapeHtml = require("../helpers/escapeHtml");
 
 const RESEND_COOLDOWN_MS = 60 * 1000;
@@ -13,7 +16,9 @@ const hashToken = (token) =>
 
 const sendVerificationEmail = (user, token) => {
   const link = `${process.env.FRONTEND_URL}/verify/${token}`;
-  return sendEmail({
+  return enqueueEmail({
+    kind: "verification",
+    user: user._id,
     to: user.email,
     subject: "Potwierdź swój adres e-mail - CRM Project",
     html: `<p>Cześć ${escapeHtml(user.name)}, </p><p>Dziękujemy za rejestrację. Potwierdź swój adres e-mail, klikając w poniższy link:</p><p><a href="${link}">${link}</a></p><p>Link jest ważny przez 24 godziny.</p><p>Jeśli nie zakładałeś/aś tego konta, zignoruj tę wiadomość.</p>`,
@@ -40,14 +45,19 @@ module.exports = {
     });
     newUser
       .save()
-      .then(() => {
-        sendVerificationEmail(newUser, verificationToken).catch((err) =>
-          console.error("Błąd wysyłki e-maila weryfikującego: ", err),
-        );
+      .then(async () => {
+        const emailStatus = await sendVerificationEmail(
+          newUser,
+          verificationToken,
+        ).catch((err) => {
+          console.error("Błąd kolejkowania e-maila weryfikującego: ", err);
+          return "failed";
+        });
 
         res.status(201).json({
           name: newUser.name,
           email: newUser.email,
+          emailStatus,
         });
       })
       .catch((err) => {
@@ -123,12 +133,20 @@ module.exports = {
         const verificationToken = crypto.randomBytes(32).toString("hex");
         user.verificationTokenHash = hashToken(verificationToken);
         user.verificationSentAt = new Date();
-        return user.save().then(() => {
-          sendVerificationEmail(user, verificationToken).catch((err) =>
-            console.error("Błąd wysyłki e-maila weryfikacyjnego: ", err),
-          );
+        return user.save().then(async () => {
+          const emailStatus = await sendVerificationEmail(
+            user,
+            verificationToken,
+          ).catch((err) => {
+            console.error("Błąd kolejkowania e-maila weryfikacyjnego: ", err);
+            return "failed";
+          });
           res.status(200).json({
-            message: "Wysłano nowy link weryfikacyjny.",
+            message:
+              emailStatus === "sent"
+                ? "Wysłano nowy link weryfikacyjny."
+                : "Nie udało się od razu wysłać linku. Spróbujemy ponownie automatycznie.",
+            emailStatus,
             retryAfterSeconds: RESEND_COOLDOWN_MS / 1000,
           });
         });
@@ -190,9 +208,14 @@ module.exports = {
             message: "Nie znaleziono użytkownika.",
           });
         }
-        res.status(200).json({
-          verified: user.verified,
-        });
+        return getLatestEmailStatus(user._id, "verification").then(
+          (emailStatus) => {
+            res.status(200).json({
+              verified: user.verified,
+              emailStatus,
+            });
+          },
+        );
       })
       .catch((err) => {
         sendServerError(res, err);

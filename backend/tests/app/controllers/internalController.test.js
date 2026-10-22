@@ -3,6 +3,7 @@ const app = require("../../../app");
 const User = require("../../../app/models/UserModel");
 const Customer = require("../../../app/models/CustomerModel");
 const Action = require("../../../app/models/ActionModel");
+const EmailMessage = require("../../../app/models/EmailMessageModel");
 const { connect, closeDatabase, clearDatabase } = require("../../setup");
 
 jest.mock("../../../app/services/emailService", () => ({
@@ -225,5 +226,58 @@ describe("POST /internal/cleanup-accounts", () => {
       expect(html).not.toContain('<a href="https://evil.example">');
       expect(html).toContain("&lt;a href=&quot;https://evil.example&quot;&gt;");
     });
+
+    it("answers 500 with a generic message when the cleanup fails", async () => {
+      const errorSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      const findSpy = jest.spyOn(User, "find").mockImplementationOnce(() => {
+        throw new Error("db down");
+      });
+
+      const res = await cleanup(SECRET);
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body).toEqual({
+        error: true,
+        message: "Internal server error.",
+      });
+
+      findSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+  });
+});
+
+describe("GET /internal/emails", () => {
+  it("rejects a request without the secret", async () => {
+    const res = await request(app).get("/internal/emails");
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns the outbox counts and recent failures", async () => {
+    await EmailMessage.create({
+      kind: "verification",
+      to: "a@example.com",
+      subject: "Temat",
+      status: "sent",
+    });
+    await EmailMessage.create({
+      kind: "verification",
+      to: "b@example.com",
+      subject: "Temat",
+      status: "failed",
+      attempts: 3,
+      lastError: "Resend is down",
+    });
+
+    const res = await request(app)
+      .get("/internal/emails")
+      .set("X-Internal-Secret", SECRET);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ pending: 0, sent: 1, failed: 1 });
+    expect(res.body.recentFailures).toHaveLength(1);
+    expect(res.body.recentFailures[0].lastError).toBe("Resend is down");
   });
 });

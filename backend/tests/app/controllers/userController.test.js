@@ -174,6 +174,30 @@ describe("POST /auth/signup", () => {
 
     expect(res.statusCode).toBe(409);
   });
+
+  it("reports the status of the verification email", async () => {
+    const res = await request(app).post("/auth/signup").send({
+      name: "Jan Kowalski",
+      email: "jan@example.com",
+      password: "password123",
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.emailStatus).toBe("sent");
+  });
+
+  it("still creates the account when the verification email cannot be sent", async () => {
+    sendEmail.mockRejectedValueOnce(new Error("Resend is down"));
+
+    const res = await request(app).post("/auth/signup").send({
+      name: "Jan Kowalski",
+      email: "jan@example.com",
+      password: "password123",
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.emailStatus).toBe("pending");
+  });
 });
 
 describe("POST /auth/login", () => {
@@ -464,6 +488,22 @@ describe("Email verification", () => {
         .set("Authorization", jwtToken);
       expect(res.statusCode).toBe(400);
     });
+
+    it("tells the user when the new link could not be sent right away", async () => {
+      await User.updateOne(
+        { email: "jan@example.com" },
+        { verificationSentAt: new Date(Date.now() - 2 * 60 * 1000) },
+      );
+      sendEmail.mockRejectedValueOnce(new Error("Resend is down"));
+
+      const res = await request(app)
+        .post("/auth/resend-verification")
+        .set("Authorization", jwtToken);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.emailStatus).toBe("pending");
+      expect(res.body.message).toMatch(/Spróbujemy ponownie/);
+    });
   });
 
   describe("GET /auth/verification-status", () => {
@@ -506,6 +546,14 @@ describe("Email verification", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.verified).toBe(true);
+    });
+
+    it("includes the status of the latest verification email", async () => {
+      const res = await request(app)
+        .get("/auth/verification-status")
+        .set("Authorization", jwtToken);
+
+      expect(res.body.emailStatus).toBe("sent");
     });
   });
 });
