@@ -1,17 +1,30 @@
 import { Button } from "react-bootstrap";
 import GenericModal from "./GenericModal";
 
-const SignupSuccessModal = ({ show, onClose, email }) => {
+const SignupSuccessModal = ({ show, onClose, email, emailStatus }) => {
+  const delayed = emailStatus === "pending" || emailStatus === "failed";
+
   const body = (
     <>
-      <p className="mb-2">
-        Wysłaliśmy link aktywacyjny na adres <strong>{email}</strong>
-      </p>
-      <p className="mb-2 text-muted">
-        Kliknij go, aby potwierdzić konto. Jeśli wiadomość nie dotrze, sprawdź
-        folder ze spamem. Po zalogowaniu możesz też poprosić o ponowne wysłanie
-        linku.
-      </p>
+      {delayed ? (
+        <p className="mb-2">
+          Konto zostało utworzone, ale nie udało się od razu wysłać linku
+          aktywacyjnego na adres <strong>{email}</strong>. Spróbujemy ponownie
+          automatycznie w ciągu kilku minut. Po zalogowaniu możesz też poprosić
+          o nowy link.
+        </p>
+      ) : (
+        <>
+          <p className="mb-2">
+            Wysłaliśmy link aktywacyjny na adres <strong>{email}</strong>
+          </p>
+          <p className="mb-2 text-muted">
+            Kliknij go, aby potwierdzić konto. Jeśli wiadomość nie dotrze,
+            sprawdź folder ze spamem. Po zalogowaniu możesz też poprosić o
+            ponowne wysłanie linku.
+          </p>
+        </>
+      )}
       <p className="mb-0 text-muted small">
         To aplikacja demonstracyjna - konto wraz ze wszystkimi danymi zostanie
         automatycznie usunięte po 3 dniach.

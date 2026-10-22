@@ -14,6 +14,35 @@ describe("SignupSuccessModal", () => {
     expect(screen.getByText(/usunięte po 3 dniach/)).toBeInTheDocument();
   });
 
+  it("shows the normal message when the email was sent", () => {
+    render(
+      <SignupSuccessModal
+        show
+        onClose={() => {}}
+        email="jan@firma.pl"
+        emailStatus="sent"
+      />,
+    );
+    expect(screen.getByText(/Wysłaliśmy link aktywacyjny/)).toBeInTheDocument();
+  });
+
+  it("warns that the email is delayed when it could not be sent right away", () => {
+    render(
+      <SignupSuccessModal
+        show
+        onClose={() => {}}
+        email="jan@firma.pl"
+        emailStatus="pending"
+      />,
+    );
+    expect(
+      screen.getByText(/nie udało się od razu wysłać linku aktywacyjnego/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Wysłaliśmy link aktywacyjny/),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders nothing when it is not shown", () => {
     render(
       <SignupSuccessModal

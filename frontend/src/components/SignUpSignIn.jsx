@@ -12,7 +12,11 @@ import SignupSuccessModal from "./modals/SignupSuccessModal";
 export const SignUpSignIn = ({ setUser }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState("");
-  const [signupModal, setSignupModal] = useState({ show: false, email: "" });
+  const [signupModal, setSignupModal] = useState({
+    show: false,
+    email: "",
+    emailStatus: "sent",
+  });
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -33,8 +37,12 @@ export const SignUpSignIn = ({ setUser }) => {
 
     if (isRegister) {
       addUser(formData)
-        .then(() => {
-          setSignupModal({ show: true, email: formData.email });
+        .then((res) => {
+          setSignupModal({
+            show: true,
+            email: formData.email,
+            emailStatus: res?.emailStatus ?? "sent",
+          });
           setIsRegister(false);
           setFormData({ name: "", email: "", password: "" });
         })
@@ -195,6 +203,7 @@ export const SignUpSignIn = ({ setUser }) => {
         show={signupModal.show}
         onClose={() => setSignupModal((prev) => ({ ...prev, show: false }))}
         email={signupModal.email}
+        emailStatus={signupModal.emailStatus}
       />
     </div>
   );

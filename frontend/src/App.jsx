@@ -28,6 +28,7 @@ import {
   getCookie,
   setCookie,
   getWriteBlockMessage,
+  getEmailStatusMessage,
 } from "./helpers/helpers";
 import { useInactivityLogout } from "./hooks/useInactivityLogout";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
@@ -52,6 +53,8 @@ function App() {
   const writeBlockMessage = getWriteBlockMessage(isViewer, isVerified);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resending, setResending] = useState(false);
+  const [emailStatus, setEmailStatus] = useState(null);
+  const emailStatusMessage = getEmailStatusMessage(emailStatus);
   const [resendModal, setResendModal] = useState({
     show: false,
     message: "",
@@ -133,6 +136,7 @@ function App() {
   const refreshVerification = async () => {
     getVerificationStatus()
       .then((res) => {
+        setEmailStatus(res.emailStatus ?? null);
         if (res.verified) {
           const updated = { ...user, verified: true };
           setCookie(updated);
@@ -150,6 +154,7 @@ function App() {
     setResending(true);
     resendVerification()
       .then((res) => {
+        setEmailStatus(res.emailStatus ?? null);
         if (res.retryAfterSeconds) startResendCountdown(res.retryAfterSeconds);
         setResendModal({
           show: true,
@@ -279,6 +284,9 @@ function App() {
         >
           <i className="fa-solid fa-circle-info"></i>
           {writeBlockMessage}
+          {!isViewer && !isVerified && emailStatusMessage && (
+            <span className="fw-semibold">{emailStatusMessage}</span>
+          )}
           {!isViewer && !isVerified && (
             <button
               type="button"

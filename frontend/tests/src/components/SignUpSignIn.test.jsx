@@ -7,7 +7,7 @@ vi.mock("../../../src/apiService/user/apiUser", () => ({
   logInUser: vi.fn(),
 }));
 
-import { logInUser } from "../../../src/apiService/user/apiUser";
+import { addUser, logInUser } from "../../../src/apiService/user/apiUser";
 import { SignUpSignIn } from "../../../src/components/SignUpSignIn";
 
 const renderPage = () =>
@@ -58,6 +58,58 @@ describe("SignUpSignIn login errors", () => {
 
     submitLogin(container);
 
-    expect(await screen.findByText(/Nie udało się zalogować/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Nie udało się zalogować/),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("SignUpSignIn signup confirmation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const submitSignup = (container) => {
+    fireEvent.click(screen.getByRole("button", { name: "Zarejestruj się" }));
+    fireEvent.change(container.querySelector('input[name="name"]'), {
+      target: { value: "Jan Kowalski" },
+    });
+    fireEvent.change(container.querySelector('input[name="email"]'), {
+      target: { value: "jan@firma.pl" },
+    });
+    fireEvent.change(container.querySelector('input[name="password"]'), {
+      target: { value: "password123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Zarejestruj się" }));
+  };
+
+  it("confirms that the activation email was sent", async () => {
+    addUser.mockResolvedValueOnce({
+      email: "jan@firma.pl",
+      emailStatus: "sent",
+    });
+    const { container } = renderPage();
+
+    submitSignup(container);
+
+    expect(
+      await screen.findByText(/Wysłaliśmy link aktywacyjny/),
+    ).toBeInTheDocument();
+  });
+
+  it("warns when the activation email could not be sent right away", async () => {
+    addUser.mockResolvedValueOnce({
+      email: "jan@firma.pl",
+      emailStatus: "pending",
+    });
+    const { container } = renderPage();
+
+    submitSignup(container);
+
+    expect(
+      await screen.findByText(
+        /nie udało się od razu wysłać linku aktywacyjnego/,
+      ),
+    ).toBeInTheDocument();
   });
 });
