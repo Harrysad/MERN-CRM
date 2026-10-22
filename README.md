@@ -143,26 +143,26 @@ The scheduled cleanup workflow additionally needs two GitHub repository secrets:
 
 All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/internal/*` require the JWT in the `Authorization` header. Every account is scoped to its own data — a customer or interaction created by one account is never visible to another. New accounts get the `admin` role by default; a `viewer`-role account can use every `GET` endpoint but gets a `403` on `POST`/`PUT`/`DELETE`. Until its email address is confirmed, an account is treated the same way: reads work, writes return `403`. Login, signup and the NIP lookup are rate limited per IP address and answer `429` when the limit is exceeded. Responses carry standard security headers (via helmet), and server errors return a generic JSON message instead of internal details.
 
-| Method | Endpoint                     | Description                                                                                                                                            |
-| ------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --- |
-| POST   | `/auth/signup`               | Register a user (the password must have at least 8 characters)                                                                                         |
-| POST   | `/auth/login`                | Log in, returns a JWT                                                                                                                                  |
-| POST   | `/auth/logout`               | Log out                                                                                                                                                |
-| GET    | `/auth/verify/:token`        | Confirm an email address with the token from the verification email (valid for 24 hours)                                                               |
-| POST   | `/auth/resend-verification`  | Send a new verification link (60 s cooldown); the response includes the delivery status of the email |
-| GET    | `/auth/verification-status`  | Check whether the current account is verified and what happened to its latest verification email |
-| GET    | `/customers`                 | List customers. Query: `page`, `limit` (max 100), `sort` (`name`, `address.postcode` or `nip`), `order`, `search`                                      |     |
-| GET    | `/customers/:id`             | Get one customer                                                                                                                                       |
-| POST   | `/customers/add`             | Create a customer                                                                                                                                      |
-| PUT    | `/customers/edit/:id`        | Update a customer                                                                                                                                      |
-| DELETE | `/customers/delete/:id`      | Delete a customer                                                                                                                                      |
-| GET    | `/actions/:customerId`       | List a customer's interactions. Query: `page`, `limit` (max 100)                                                                                       |
-| POST   | `/actions/add`               | Add an interaction                                                                                                                                     |
-| PUT    | `/actions/edit/:id`          | Update an interaction                                                                                                                                  |
-| DELETE | `/actions/delete/:id`        | Delete an interaction                                                                                                                                  |
-| GET    | `/nip/:nip`                  | Look up a company's name and address by NIP in Poland's VAT payer registry (available to every role)                                                   |
-| POST   | `/internal/cleanup-accounts` | Delete accounts older than 3 days, except the demo one. Not for users: requires the `X-Internal-Secret` header and is called by the scheduled workflow |
-| GET    | `/internal/emails`           | Delivery counts of the email outbox (pending, sent, failed) and the most recent errors. Not for users: requires the `X-Internal-Secret` header |
+| Method | Endpoint                     | Description                                                                                                                                      |
+| ------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/auth/signup`               | Register a user (the password must have at least 8 characters)                                                                                   |
+| POST   | `/auth/login`                | Log in, returns a JWT                                                                                                                            |
+| POST   | `/auth/logout`               | Log out                                                                                                                                          |
+| GET    | `/auth/verify/:token`        | Confirm an email address with the token from the verification email (valid for 24 hours)                                                         |
+| POST   | `/auth/resend-verification`  | Send a new verification link (60 s cooldown); the response includes the delivery status of the email                                             |
+| GET    | `/auth/verification-status`  | Check whether the current account is verified and what happened to its latest verification email                                                 |
+| GET    | `/customers`                 | List customers. Query: `page`, `limit` (max 100), `sort` (`name`, `address.postcode` or `nip`), `order`, `search`                                |
+| GET    | `/customers/:id`             | Get one customer                                                                                                                                 |
+| POST   | `/customers/add`             | Create a customer                                                                                                                                |
+| PUT    | `/customers/edit/:id`        | Update a customer                                                                                                                                |
+| DELETE | `/customers/delete/:id`      | Delete a customer                                                                                                                                |
+| GET    | `/actions/:customerId`       | List a customer's interactions. Query: `page`, `limit` (max 100)                                                                                 |
+| POST   | `/actions/add`               | Add an interaction                                                                                                                               |
+| PUT    | `/actions/edit/:id`          | Update an interaction                                                                                                                            |
+| DELETE | `/actions/delete/:id`        | Delete an interaction                                                                                                                            |
+| GET    | `/nip/:nip`                  | Look up a company's name and address by NIP in Poland's VAT payer registry (available to every role)                                             |
+| POST   | `/internal/cleanup-accounts` | Delete accounts older than 3 days, except the demo one. Not for users: requires the `X-Internal-Secret` header and is called by the workflow    |
+| GET    | `/internal/emails`           | Delivery counts of the email outbox (pending, sent, failed) and the latest errors. Not for users: requires the `X-Internal-Secret` header       |
 
 ## Security
 
