@@ -22,7 +22,7 @@ Want to try the signup flow? Register your own account (a disposable address fro
 - 🔐 JWT authentication (register, login, logout)
 - 🛡️ Role-based access control: every account is `admin` over its own data by default; a `viewer` role can read everything but is blocked from creating, editing or deleting records
 - 🔒 Per-account data isolation: every customer and interaction belongs to the account that created it — no account can see, edit or delete another account's data
-- ✉️ Email verification: a new account must confirm its address through a link sent by email (Resend); until then it is read-only. The link is valid for 24 hours and can be re-sent after a 60-second cooldown
+- ✉️ Email verification: a new account must confirm its address through a link sent by email (Resend); until then it is read-only. The link is valid for 24 hours and can be re-sent after a 60-second cooldown. Emails go through an outbox with automatic retries, and the signup dialog and the banner tell the user when a delivery was delayed or failed
 - 🧹 Automatic cleanup: every account except the demo one is deleted with all its data 3 days after it was created, by a scheduled GitHub Actions workflow that calls a secret-protected endpoint; the owner is notified by email
 - 🏢 NIP-based company autofill: looks up a company by NIP in Poland's official VAT payer registry and fills in the name and address automatically
 - ⏱️ Automatic logout after 5 minutes of inactivity, with a warning modal one minute before the session expires
@@ -65,7 +65,7 @@ mern-crm/
 │   │   ├── middlewares/          # JWT auth, write access (role + email verification), rate limiting, internal secret check
 │   │   ├── models/               # Mongoose schemas (User with role, Customer, Action — both scoped by owner)
 │   │   ├── router/               # route definitions
-│   │   └── services/             # email sending (Resend) and account retention
+│   │   └── services/             # email sending (Resend), the email outbox with retries, account retention
 │   └── tests/                    # Jest + Supertest, mirrors app/
 │       ├── setup.js              # in-memory MongoDB helpers
 │       └── app/                  # controllers, helpers, middlewares, services
@@ -144,14 +144,14 @@ The scheduled cleanup workflow additionally needs two GitHub repository secrets:
 All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/internal/*` require the JWT in the `Authorization` header. Every account is scoped to its own data — a customer or interaction created by one account is never visible to another. New accounts get the `admin` role by default; a `viewer`-role account can use every `GET` endpoint but gets a `403` on `POST`/`PUT`/`DELETE`. Until its email address is confirmed, an account is treated the same way: reads work, writes return `403`. Login, signup and the NIP lookup are rate limited per IP address and answer `429` when the limit is exceeded. Responses carry standard security headers (via helmet), and server errors return a generic JSON message instead of internal details.
 
 | Method | Endpoint                     | Description                                                                                                                                            |
-| ------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --- |
 | POST   | `/auth/signup`               | Register a user (the password must have at least 8 characters)                                                                                         |
 | POST   | `/auth/login`                | Log in, returns a JWT                                                                                                                                  |
 | POST   | `/auth/logout`               | Log out                                                                                                                                                |
-| GET    | `/auth/verify/:token`        | Confirm an email address with the token from the verification email (valid for 24 hours)                                                                                    |
-| POST   | `/auth/resend-verification`  | Send a new verification link (60 s cooldown)                                                                                                           |
-| GET    | `/auth/verification-status`  | Check whether the current account is verified                                                                                                          |
-| GET    | `/customers`                 | List customers. Query: `page`, `limit` (max 100), `sort` (`name`, `address.postcode` or `nip`), `order`, `search`                                      |                                                                            |
+| GET    | `/auth/verify/:token`        | Confirm an email address with the token from the verification email (valid for 24 hours)                                                               |
+| POST   | `/auth/resend-verification`  | Send a new verification link (60 s cooldown); the response includes the delivery status of the email |
+| GET    | `/auth/verification-status`  | Check whether the current account is verified and what happened to its latest verification email |
+| GET    | `/customers`                 | List customers. Query: `page`, `limit` (max 100), `sort` (`name`, `address.postcode` or `nip`), `order`, `search`                                      |     |
 | GET    | `/customers/:id`             | Get one customer                                                                                                                                       |
 | POST   | `/customers/add`             | Create a customer                                                                                                                                      |
 | PUT    | `/customers/edit/:id`        | Update a customer                                                                                                                                      |
@@ -162,6 +162,7 @@ All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/
 | DELETE | `/actions/delete/:id`        | Delete an interaction                                                                                                                                  |
 | GET    | `/nip/:nip`                  | Look up a company's name and address by NIP in Poland's VAT payer registry (available to every role)                                                   |
 | POST   | `/internal/cleanup-accounts` | Delete accounts older than 3 days, except the demo one. Not for users: requires the `X-Internal-Secret` header and is called by the scheduled workflow |
+| GET    | `/internal/emails`           | Delivery counts of the email outbox (pending, sent, failed) and the most recent errors. Not for users: requires the `X-Internal-Secret` header |
 
 ## Security
 
@@ -172,6 +173,7 @@ All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/
 - Verification tokens are random and stored only as SHA-256 hashes; the internal cleanup endpoint compares its secret in constant time and is disabled when no secret is set.
 - Secrets live in `.env` files that are git-ignored, a Git hook refuses commits that stage them, and the development MongoDB port is bound to localhost.
 - Demo data is temporary: every account except the demo one is deleted after 3 days.
+- Outgoing emails are stored in a MongoDB outbox so a failed delivery is retried (after one and five minutes) and visible, but the message body, which contains the verification link, is deleted as soon as the email is sent or given up on, and the whole entry expires after seven days.
 
 ## Running Tests
 
@@ -206,4 +208,4 @@ git config core.hooksPath .githooks
 - End-to-end tests (Playwright) and component tests for the customer list and forms
 - Store the JWT in an httpOnly cookie instead of a JavaScript-readable one
 - API documentation (OpenAPI/Swagger)
-- Send emails through a queue and surface delivery failures (verification and deletion emails are currently fire-and-forget)
+- Run the email outbox worker in a separate process or on a durable queue: it currently retries on a timer inside the API process, so retries pause while the free Render instance is asleep
