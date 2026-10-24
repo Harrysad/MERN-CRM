@@ -1,32 +1,12 @@
-import axios from "axios";
-import config from "../../config";
-import { getCookie } from "../../helpers/helpers";
+import { createApiClient } from "../createApiClient";
 
-const api = axios.create({
-  baseURL: config.api.url + "/actions",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: JSON.parse(getCookie("user") || 'null')?.jwt,
-  },
-});
-
-
-api.interceptors.request.use(
-  (config) => {
-    const token = JSON.parse(getCookie("user") || "null")?.jwt; // Pobieranie tokena z cookies
-    if (token) {
-      config.headers["Authorization"] = token; // Dodanie tokena do nagłówka
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error); // Obsługa błędów żądań
-  }
-);
+const api = createApiClient("/actions");
 
 export const getActions = async (customerId, page, limit) => {
   try {
-    const response = await api.get(`/${customerId}?page=${page}&limit=${limit}`);
+    const response = await api.get(
+      `/${customerId}?page=${page}&limit=${limit}`,
+    );
     return response.data;
   } catch (error) {
     console.error("Błąd podczas pobierania danych: ", error);
@@ -37,7 +17,6 @@ export const getActions = async (customerId, page, limit) => {
 export const addAction = async (payload) => {
   try {
     const response = await api.post("/add", payload);
-    console.log(response);
     return response.data;
   } catch (error) {
     console.error("Błąd podczas pobierania danych: ", error);
