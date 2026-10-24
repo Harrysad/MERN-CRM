@@ -1,6 +1,19 @@
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 const User = require("../app/models/UserModel");
+const AUTH_COOKIE = "AuthToken";
+
+const getAuthToken = (loginRes) => {
+  const pair = loginRes.headers["set-cookie"]
+    .map((cookie) => cookie.split(";")[0])
+    .find((cookie) => cookie.startsWith(`${AUTH_COOKIE}=`));
+  return pair.slice(AUTH_COOKIE.length + 1);
+};
+
+const withAuth = (token) => (req) =>
+  req
+    .set("Cookie", `${AUTH_COOKIE}=${token}`)
+    .set("X-Requested-With", "XMLHttpRequest");
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test_secret_key";
 
@@ -32,4 +45,11 @@ async function verifyUser(email) {
   await User.findOneAndUpdate({ email }, { verified: true });
 }
 
-module.exports = { connect, closeDatabase, clearDatabase, verifyUser };
+module.exports = {
+  connect,
+  closeDatabase,
+  clearDatabase,
+  verifyUser,
+  getAuthToken,
+  withAuth,
+};

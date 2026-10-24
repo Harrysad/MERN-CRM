@@ -1,6 +1,12 @@
 const request = require("supertest");
 const app = require("../../../app");
-const { connect, closeDatabase, clearDatabase } = require("../../setup");
+const {
+  connect,
+  closeDatabase,
+  clearDatabase,
+  getAuthToken,
+  withAuth,
+} = require("../../setup");
 const { sendEmail } = require("../../../app/services/emailService");
 const User = require("../../../app/models/UserModel");
 
@@ -216,8 +222,9 @@ describe("POST /auth/login", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.jwt).toBeDefined();
+    expect(getAuthToken(res)).toBeDefined();
     expect(res.body.role).toBe("admin");
+    expect(res.body.jwt).toBeUndefined();
   });
 
   it("rejects an incorrect password", async () => {
@@ -305,7 +312,7 @@ describe("POST /auth/login", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.jwt).toBeDefined();
+    expect(getAuthToken(res)).toBeDefined();
   });
 });
 
@@ -413,7 +420,7 @@ describe("Email verification", () => {
 
       const resendRes = await request(app)
         .post("/auth/resend-verification")
-        .set("Authorization", loginRes.body.jwt);
+        .use(withAuth(getAuthToken(loginRes)));
       expect(resendRes.statusCode).toBe(200);
 
       const res = await request(app).get(
@@ -437,7 +444,7 @@ describe("Email verification", () => {
         email: "jan@example.com",
         password: "password123",
       });
-      jwtToken = loginRes.body.jwt;
+      jwtToken = getAuthToken(loginRes);
     });
 
     it("requires authentication", async () => {
@@ -448,7 +455,7 @@ describe("Email verification", () => {
     it("blocks a resend during the cooldown", async () => {
       const res = await request(app)
         .post("/auth/resend-verification")
-        .set("Authorization", jwtToken);
+        .use(withAuth(jwtToken));
 
       expect(res.statusCode).toBe(429);
       expect(res.body.retryAfterSeconds).toBeGreaterThan(0);
@@ -465,7 +472,7 @@ describe("Email verification", () => {
 
       const res = await request(app)
         .post("/auth/resend-verification")
-        .set("Authorization", jwtToken);
+        .use(withAuth(jwtToken));
       expect(res.statusCode).toBe(200);
       expect(res.body.retryAfterSeconds).toBe(60);
       expect(sendEmail).toHaveBeenCalledTimes(2);
@@ -485,7 +492,7 @@ describe("Email verification", () => {
 
       const res = await request(app)
         .post("/auth/resend-verification")
-        .set("Authorization", jwtToken);
+        .use(withAuth(jwtToken));
       expect(res.statusCode).toBe(400);
     });
 
@@ -498,7 +505,7 @@ describe("Email verification", () => {
 
       const res = await request(app)
         .post("/auth/resend-verification")
-        .set("Authorization", jwtToken);
+        .use(withAuth(jwtToken));
 
       expect(res.statusCode).toBe(200);
       expect(res.body.emailStatus).toBe("pending");
@@ -520,7 +527,7 @@ describe("Email verification", () => {
         email: "jan@example.com",
         password: "password123",
       });
-      jwtToken = loginRes.body.jwt;
+      jwtToken = getAuthToken(loginRes);
     });
 
     it("requires authentication", async () => {
@@ -531,7 +538,7 @@ describe("Email verification", () => {
     it("reports a new account as not verfied", async () => {
       const res = await request(app)
         .get("/auth/verification-status")
-        .set("Authorization", jwtToken);
+        .use(withAuth(jwtToken));
 
       expect(res.statusCode).toBe(200);
       expect(res.body.verified).toBe(false);
@@ -542,7 +549,7 @@ describe("Email verification", () => {
 
       const res = await request(app)
         .get("/auth/verification-status")
-        .set("Authorization", jwtToken);
+        .use(withAuth(jwtToken));
 
       expect(res.statusCode).toBe(200);
       expect(res.body.verified).toBe(true);
@@ -551,7 +558,7 @@ describe("Email verification", () => {
     it("includes the status of the latest verification email", async () => {
       const res = await request(app)
         .get("/auth/verification-status")
-        .set("Authorization", jwtToken);
+        .use(withAuth(jwtToken));
 
       expect(res.body.emailStatus).toBe("sent");
     });
