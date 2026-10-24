@@ -6,6 +6,11 @@ const {
   getLatestEmailStatus,
 } = require("../services/emailOutbox");
 const escapeHtml = require("../helpers/escapeHtml");
+const {
+  COOKIE_NAME,
+  COOKIE_MAX_AGE_MS,
+  getAuthCookieOptions,
+} = require("../helpers/authCookie");
 
 const RESEND_COOLDOWN_MS = 60 * 1000;
 const VERIFICATION_LINK_TTL_MS = 24 * 60 * 60 * 1000;
@@ -184,8 +189,9 @@ module.exports = {
           }
 
           const token = user.generateAuthToken(user);
-          res.cookie("AuthToken", token, {
-            maxAge: 3600000,
+          res.cookie(COOKIE_NAME, token, {
+            ...getAuthCookieOptions(),
+            maxAge: COOKIE_MAX_AGE_MS,
           });
           res.status(200).json({
             name: user.name,
@@ -222,7 +228,7 @@ module.exports = {
       });
   },
   logout: (_req, res) => {
-    res.clearCookie("AuthToken");
+    res.clearCookie(COOKIE_NAME, getAuthCookieOptions());
 
     return res
       .status(200)
