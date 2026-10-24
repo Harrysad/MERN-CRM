@@ -4,7 +4,7 @@ A full-stack Customer Relationship Management system built to practice real-worl
 
 ## Live Demo
 
-🔗 **[https://app-mern.debowski.eu](https://app.debowski.eu)**
+🔗 **[https://app-mern.debowski.eu](https://app-mern.debowski.eu)**
 
 Test credentials:
 
