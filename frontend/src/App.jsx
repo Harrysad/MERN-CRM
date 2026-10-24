@@ -34,6 +34,7 @@ import { useInactivityLogout } from "./hooks/useInactivityLogout";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { useTheme } from "./hooks/useTheme";
 import { usePageSize } from "./hooks/usePageSize";
+import { useSessionExpired } from "./hooks/useSessionExpired";
 import { useCountdown } from "./hooks/useCountdown";
 
 const ProtectedRoute = ({ user, children }) => {
@@ -115,6 +116,15 @@ function App() {
     },
     [navigate],
   );
+
+  const handleSessionExpired = useCallback(() => {
+    setShowSessionWarning(false);
+    setUser(null);
+    deleteCookie("user");
+    navigate("/Home");
+  }, [navigate]);
+
+  useSessionExpired(handleSessionExpired);
 
   const handleWarn = useCallback(() => setShowSessionWarning(true), []);
 

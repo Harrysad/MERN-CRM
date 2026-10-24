@@ -104,6 +104,12 @@ export const getEmailStatusMessage = (emailStatus) => {
   return null;
 };
 
+export const toSessionUser = ({ name, role, verified }) => ({
+  name,
+  role,
+  verified,
+});
+
 export const deleteCookie = (cname) => {
   document.cookie = cname + "=;Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
 };

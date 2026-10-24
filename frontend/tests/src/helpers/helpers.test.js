@@ -6,6 +6,7 @@ import {
   getSignupErrorMessage,
   getLoginErrorMessage,
   getEmailStatusMessage,
+  toSessionUser,
 } from "../../../src/helpers/helpers";
 
 describe("formatZipCode", () => {
@@ -127,5 +128,24 @@ describe("getEmailStatusMessage", () => {
 
   it("asks the user to resend the link when the delivery failed", () => {
     expect(getEmailStatusMessage("failed")).toMatch(/Wyślij link ponownie/);
+  });
+});
+
+describe("toSessionUser", () => {
+  it("keeps only the data needed to render the interface", () => {
+    expect(
+      toSessionUser({
+        name: "Jan",
+        role: "admin",
+        verified: true,
+        jwt: "secret-token",
+      }),
+    ).toEqual({ name: "Jan", role: "admin", verified: true });
+  });
+
+  it("never carries the token over", () => {
+    expect(
+      toSessionUser({ name: "Jan", jwt: "secret-token" }),
+    ).not.toHaveProperty("jwt");
   });
 });

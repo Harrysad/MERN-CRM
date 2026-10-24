@@ -1,14 +1,7 @@
-import axios from "axios";
-import config from "../../config";
-import { getCookie } from "../../helpers/helpers";
+import { createApiClient } from "../createApiClient";
+import { toSessionUser } from "../../helpers/helpers";
 
-const api = axios.create({
-  baseURL: config.api.url + "/auth", // Podstawowy URL API
-  withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+const api = createApiClient("/auth");
 
 export const addUser = async (payload) => {
   try {
@@ -23,7 +16,7 @@ export const addUser = async (payload) => {
 export const logInUser = async (payload) => {
   try {
     const response = await api.post("/login", payload);
-    return response.data;
+    return toSessionUser(response.data);
   } catch (error) {
     console.error("Błąd podczas pobierania danych:", error);
     throw error;
@@ -32,7 +25,7 @@ export const logInUser = async (payload) => {
 
 export const logOutUser = async (payload) => {
   try {
-    const response = await api.post("logout", payload);
+    const response = await api.post("/logout", payload);
     return response.data;
   } catch (error) {
     console.error("Błąd podczas pobierania danych:", error);
@@ -52,14 +45,7 @@ export const verifyEmail = async (token) => {
 
 export const resendVerification = async () => {
   try {
-    const token = JSON.parse(getCookie("user") || "null")?.jwt;
-    const response = await api.post(
-      "/resend-verification",
-      {},
-      {
-        headers: { Authorization: token },
-      },
-    );
+    const response = await api.post("/resend-verification");
     return response.data;
   } catch (error) {
     console.error(
@@ -71,9 +57,6 @@ export const resendVerification = async () => {
 };
 
 export const getVerificationStatus = async () => {
-  const token = JSON.parse(getCookie("user") || "null")?.jwt;
-  const response = await api.get("/verification-status", {
-    headers: { Authorization: token },
-  });
+  const response = await api.get("/verification-status");
   return response.data;
 };
