@@ -1,4 +1,6 @@
 const User = require("../models/UserModel");
+const jwt = require("jsonwebtoken");
+const RevokedToken = require("../models/RevokedTokenModel");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const {
@@ -226,11 +228,36 @@ module.exports = {
         sendServerError(res, err);
       });
   },
-  logout: (_req, res) => {
+  logout: (req, res) => {
+    const token = req.cookies?.[COOKIE_NAME];
     res.clearCookie(COOKIE_NAME, getAuthCookieOptions());
 
-    return res
-      .status(200)
-      .json({ message: "You have successfully logged out" });
+    const finish = () =>
+      res.status(200).json({ message: "You have successfully logged out" });
+
+    if (!token) {
+      return finish();
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return finish();
+    }
+
+    if (!payload.jti) {
+      return finish();
+    }
+
+    RevokedToken.updateOne(
+      { jti: payload.jti },
+      { $set: { expiresAt: new Date(payload.exp * 1000) } },
+      { upsert: true },
+    )
+      .then(finish)
+      .catch((err) => {
+        sendServerError(res, err);
+      });
   },
 };

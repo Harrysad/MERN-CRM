@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const getSaltRounds = require("../helpers/getSaltRounds");
 
 const User = new mongoose.Schema(
@@ -49,7 +50,7 @@ User.pre("save", function (next) {
 
 User.methods.generateAuthToken = (user) => {
   const token = jwt.sign(
-    { _id: user._id, role: user.role, verified: user.verified },
+    { _id: user._id, jti: crypto.randomUUID() },
     process.env.JWT_SECRET,
     { expiresIn: "1h" },
   );
