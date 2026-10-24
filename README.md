@@ -19,7 +19,7 @@ Want to try the signup flow? Register your own account (a disposable address fro
 
 ## Features
 
-- 🔐 JWT authentication (register, login, logout)
+- 🔐 JWT authentication (register, login, logout); the API issues the session token in an httpOnly, SameSite cookie
 - 🛡️ Role-based access control: every account is `admin` over its own data by default; a `viewer` role can read everything but is blocked from creating, editing or deleting records
 - 🔒 Per-account data isolation: every customer and interaction belongs to the account that created it — no account can see, edit or delete another account's data
 - ✉️ Email verification: a new account must confirm its address through a link sent by email (Resend); until then it is read-only. The link is valid for 24 hours and can be re-sent after a 60-second cooldown. Emails go through an outbox with automatic retries, and the signup dialog and the banner tell the user when a delivery was delayed or failed
@@ -142,32 +142,33 @@ In production `FRONTEND_URL` is `https://app-mern.debowski.eu` and the frontend 
 
 ## API Overview
 
-All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/internal/*` require the JWT in the `Authorization` header. Every account is scoped to its own data — a customer or interaction created by one account is never visible to another. New accounts get the `admin` role by default; a `viewer`-role account can use every `GET` endpoint but gets a `403` on `POST`/`PUT`/`DELETE`. Until its email address is confirmed, an account is treated the same way: reads work, writes return `403`. Login, signup and the NIP lookup are rate limited per IP address and answer `429` when the limit is exceeded. Responses carry standard security headers (via helmet), and server errors return a generic JSON message instead of internal details.
+All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/internal/*` require authentication with the session cookie set by `/auth/login` (the `Authorization` header with the JWT is still accepted while the client is being migrated). Requests that change data and rely on the cookie must carry an `X-Requested-With: XMLHttpRequest` header as protection against cross-site request forgery, and an invalid or expired token answers `401`.. Every account is scoped to its own data — a customer or interaction created by one account is never visible to another. New accounts get the `admin` role by default; a `viewer`-role account can use every `GET` endpoint but gets a `403` on `POST`/`PUT`/`DELETE`. Until its email address is confirmed, an account is treated the same way: reads work, writes return `403`. Login, signup and the NIP lookup are rate limited per IP address and answer `429` when the limit is exceeded. Responses carry standard security headers (via helmet), and server errors return a generic JSON message instead of internal details.
 
-| Method | Endpoint                     | Description                                                                                                                                      |
-| ------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| POST   | `/auth/signup`               | Register a user (the password must have at least 8 characters)                                                                                   |
-| POST   | `/auth/login`                | Log in, returns a JWT                                                                                                                            |
-| POST   | `/auth/logout`               | Log out                                                                                                                                          |
-| GET    | `/auth/verify/:token`        | Confirm an email address with the token from the verification email (valid for 24 hours)                                                         |
-| POST   | `/auth/resend-verification`  | Send a new verification link (60 s cooldown); the response includes the delivery status of the email                                             |
-| GET    | `/auth/verification-status`  | Check whether the current account is verified and what happened to its latest verification email                                                 |
-| GET    | `/customers`                 | List customers. Query: `page`, `limit` (max 100), `sort` (`name`, `address.postcode` or `nip`), `order`, `search`                                |
-| GET    | `/customers/:id`             | Get one customer                                                                                                                                 |
-| POST   | `/customers/add`             | Create a customer                                                                                                                                |
-| PUT    | `/customers/edit/:id`        | Update a customer                                                                                                                                |
-| DELETE | `/customers/delete/:id`      | Delete a customer                                                                                                                                |
-| GET    | `/actions/:customerId`       | List a customer's interactions. Query: `page`, `limit` (max 100)                                                                                 |
-| POST   | `/actions/add`               | Add an interaction                                                                                                                               |
-| PUT    | `/actions/edit/:id`          | Update an interaction                                                                                                                            |
-| DELETE | `/actions/delete/:id`        | Delete an interaction                                                                                                                            |
-| GET    | `/nip/:nip`                  | Look up a company's name and address by NIP in Poland's VAT payer registry (available to every role)                                             |
-| POST   | `/internal/cleanup-accounts` | Delete accounts older than 3 days, except the demo one. Not for users: requires the `X-Internal-Secret` header and is called by the workflow    |
-| GET    | `/internal/emails`           | Delivery counts of the email outbox (pending, sent, failed) and the latest errors. Not for users: requires the `X-Internal-Secret` header       |
+| Method | Endpoint                     | Description                                                                                                                                  |
+| ------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/auth/signup`               | Register a user (the password must have at least 8 characters)                                                                               |
+| POST   | `/auth/login`                | Log in: sets the httpOnly session cookie (the JWT is still returned in the body for now)                                                     |
+| POST   | `/auth/logout`               | Log out                                                                                                                                      |
+| GET    | `/auth/verify/:token`        | Confirm an email address with the token from the verification email (valid for 24 hours)                                                     |
+| POST   | `/auth/resend-verification`  | Send a new verification link (60 s cooldown); the response includes the delivery status of the email                                         |
+| GET    | `/auth/verification-status`  | Check whether the current account is verified and what happened to its latest verification email                                             |
+| GET    | `/customers`                 | List customers. Query: `page`, `limit` (max 100), `sort` (`name`, `address.postcode` or `nip`), `order`, `search`                            |
+| GET    | `/customers/:id`             | Get one customer                                                                                                                             |
+| POST   | `/customers/add`             | Create a customer                                                                                                                            |
+| PUT    | `/customers/edit/:id`        | Update a customer                                                                                                                            |
+| DELETE | `/customers/delete/:id`      | Delete a customer                                                                                                                            |
+| GET    | `/actions/:customerId`       | List a customer's interactions. Query: `page`, `limit` (max 100)                                                                             |
+| POST   | `/actions/add`               | Add an interaction                                                                                                                           |
+| PUT    | `/actions/edit/:id`          | Update an interaction                                                                                                                        |
+| DELETE | `/actions/delete/:id`        | Delete an interaction                                                                                                                        |
+| GET    | `/nip/:nip`                  | Look up a company's name and address by NIP in Poland's VAT payer registry (available to every role)                                         |
+| POST   | `/internal/cleanup-accounts` | Delete accounts older than 3 days, except the demo one. Not for users: requires the `X-Internal-Secret` header and is called by the workflow |
+| GET    | `/internal/emails`           | Delivery counts of the email outbox (pending, sent, failed) and the latest errors. Not for users: requires the `X-Internal-Secret` header    |
 
 ## Security
 
 - Passwords are hashed with bcrypt and must have at least 8 characters; sessions use short-lived JWTs (1 hour) with a 5-minute inactivity logout.
+- The API issues the session token as an httpOnly, SameSite=Lax cookie (secure in production), and data-changing requests authenticated by the cookie must carry a custom header as CSRF protection. The frontend and the API run on two subdomains of the same site, which is why the browser sends the cookie between them.
 - Every account is scoped to its own data, and role and email-verification checks are enforced on the server for every write.
 - Input is validated on the server: only whitelisted fields are accepted on signup, create and update, login credentials must be strings, and list parameters (`page`, `limit`, `sort`, `search`) are validated. The search is regex-escaped, and user names are HTML-escaped in outgoing emails.
 - Login, signup and the NIP lookup are rate limited per IP, responses carry helmet's security headers, and errors return a generic message instead of internal details.
@@ -207,6 +208,6 @@ git config core.hooksPath .githooks
 ## What I'd Improve Next
 
 - End-to-end tests (Playwright) and component tests for the customer list and forms
-- Store the JWT in an httpOnly cookie instead of a JavaScript-readable one
+- - Finish moving the session to the httpOnly cookie: the API already issues it, but the frontend still keeps a JavaScript-readable copy of the token and sends it in a header
 - API documentation (OpenAPI/Swagger)
 - Run the email outbox worker in a separate process or on a durable queue: it currently retries on a timer inside the API process, so retries pause while the free Render instance is asleep
