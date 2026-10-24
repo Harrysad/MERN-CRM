@@ -4,7 +4,7 @@ A full-stack Customer Relationship Management system built to practice real-worl
 
 ## Live Demo
 
-🔗 **[https://mern-crm-frontend-dfos.onrender.com](https://mern-crm-frontend-dfos.onrender.com)**
+🔗 **[https://app-mern.debowski.eu](https://app.debowski.eu)**
 
 Test credentials:
 
@@ -41,7 +41,7 @@ Want to try the signup flow? Register your own account (a disposable address fro
 | Frontend     | React, Vite, React Router, Axios, React Bootstrap                                                      |
 | Testing      | Jest, Supertest, mongodb-memory-server (backend); Vitest, Testing Library (frontend)                   |
 | DevOps       | Docker (multi-stage), Docker Compose, GitHub Actions, GitHub Container Registry                        |
-| Hosting      | Render (backend + static frontend), MongoDB Atlas                                                      |
+| Hosting      | Render (backend + static frontend, custom domains), MongoDB Atlas                                      |
 | External API | Poland's VAT payer registry ("biała lista podatników", wl-api.mf.gov.pl), Resend (transactional email) |
 
 ## Project Structure
@@ -137,7 +137,8 @@ It needs Node.js 24.16 or newer (see `.nvmrc`); older 24.x releases crash on Win
 | `backend/.env`  | `INTERNAL_CLEANUP_SECRET` | Shared secret required by the internal cleanup endpoint (`X-Internal-Secret` header)                            |
 | `frontend/.env` | `VITE_API_URL`            | Backend URL (defaults to `http://localhost:5070`)                                                               |
 
-The scheduled cleanup workflow additionally needs two GitHub repository secrets: `BACKEND_URL` and `INTERNAL_CLEANUP_SECRET` (the same value as on the server).
+The scheduled cleanup workflow additionally needs two GitHub repository secrets: `BACKEND_URL` (the API domain) and `INTERNAL_CLEANUP_SECRET` (the same value as on the server).
+In production `FRONTEND_URL` is `https://app-mern.debowski.eu` and the frontend is built with `VITE_API_URL=https://api-mern.debowski.eu`.
 
 ## API Overview
 
@@ -199,7 +200,7 @@ git config core.hooksPath .githooks
 
 - **CI** (`.github/workflows/ci.yml`) runs on every pull request to `main`: backend tests, frontend tests plus a production build, and validation that both production Docker images build. `main` is protected, so a PR can only be merged when all three checks pass.
 - **CD** (`.github/workflows/cd.yml`) runs on every push to `main` and publishes the production images to GitHub Container Registry (`ghcr.io/harrysad/mern-crm-backend` and `ghcr.io/harrysad/mern-crm-frontend`).
-- **Deployment:** Render deploys the backend (Docker) and the frontend (static site) automatically once CI passes; the production database is MongoDB Atlas.
+- **Deployment:** Render deploys the backend (Docker) and the frontend (static site) automatically once CI passes; the production database is MongoDB Atlas. The frontend is served from `app-mern.debowski.eu` and the API from `api-mern.debowski.eu`, two custom domains of the same site.
 - **Scheduled cleanup** (`.github/workflows/cleanup-accounts.yml`) runs daily at 03:00 UTC and can also be started manually. It calls the backend's internal cleanup endpoint with a shared secret, which deletes every account older than 3 days except the demo one, together with its data. It retries so it can cope with the free Render instance waking up.
 - **Workflow:** every change goes through a feature branch and a pull request, with [Conventional Commits](https://www.conventionalcommits.org/) messages.
 
