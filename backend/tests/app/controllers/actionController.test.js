@@ -1,5 +1,4 @@
 const request = require("supertest");
-const jwt = require("jsonwebtoken");
 const app = require("../../../app");
 const {
   connect,
@@ -9,6 +8,7 @@ const {
   getAuthToken,
   withAuth,
 } = require("../../setup");
+const User = require("../../../app/models/UserModel");
 
 let token;
 let customerId;
@@ -218,11 +218,22 @@ describe("PUT /actions/edit/:id", () => {
 describe("Read-only role", () => {
   let viewerToken;
 
-  beforeAll(() => {
-    viewerToken = jwt.sign(
-      { _id: "000000000000000000000001", role: "viewer" },
-      process.env.JWT_SECRET,
+  beforeEach(async () => {
+    await request(app).post("/auth/signup").send({
+      name: "Widz",
+      email: "widz@example.com",
+      password: "password123",
+    });
+    await User.updateOne(
+      { email: "widz@example.com" },
+      { role: "viewer", verified: true },
     );
+
+    const loginRes = await request(app).post("/auth/login").send({
+      email: "widz@example.com",
+      password: "password123",
+    });
+    viewerToken = getAuthToken(loginRes);
   });
 
   it("blocks a viewer from creating an action", async () => {

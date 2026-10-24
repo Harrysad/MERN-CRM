@@ -1,9 +1,12 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/UserModel");
+const RevokedToken = require("../models/RevokedTokenModel");
+const sendServerError = require("../helpers/sendServerError");
 const { COOKIE_NAME } = require("../helpers/authCookie");
 
 const SAFE_METHODS = ["GET", "HEAD", "OPTIONS"];
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
   const token = req.cookies?.[COOKIE_NAME];
 
   if (!token) {
@@ -21,15 +24,38 @@ module.exports = (req, res, next) => {
     });
   }
 
+  let payload;
   try {
-    const verified = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = verified._id;
-    req.userRole = verified.role;
-    req.userVerified = verified.verified;
-    next();
+    payload = jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
-    res.status(401).json({
+    return res.status(401).json({
       message: "Invalid token",
     });
+  }
+
+  if (!payload.jti) {
+    return res.status(401).json({
+      message: "Invalid token",
+    });
+  }
+
+  try {
+    const [revoked, user] = await Promise.all([
+      RevokedToken.exists({ jti: payload.jti }),
+      User.findById(payload._id).select("role verified"),
+    ]);
+
+    if (revoked || !user) {
+      return res.status(401).json({
+        message: "Session has ended",
+      });
+    }
+
+    req.userId = payload._id;
+    req.userRole = user.role;
+    req.userVerified = user.verified;
+    next();
+  } catch (err) {
+    sendServerError(res, err);
   }
 };

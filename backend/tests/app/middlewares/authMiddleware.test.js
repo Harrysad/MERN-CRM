@@ -8,6 +8,8 @@ const {
   getAuthToken,
   withAuth,
 } = require("../../setup");
+const jwt = require("jsonwebtoken");
+const User = require("../../../app/models/UserModel");
 
 jest.mock("../../../app/services/emailService", () => ({
   sendEmail: jest.fn().mockResolvedValue(undefined),
@@ -147,5 +149,62 @@ describe("logout", () => {
     expect(header).toMatch(/Expires=Thu, 01 Jan 1970/);
     expect(header).toMatch(/HttpOnly/);
     expect(header).toMatch(/SameSite=Lax/);
+  });
+});
+
+describe("session revocation and fresh account data", () => {
+  it("rejects a token after the user logged out", async () => {
+    await request(app).post("/auth/logout").use(withAuth(token));
+
+    const res = await request(app).get("/customers").use(withAuth(token));
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.message).toBe("Session has ended");
+  });
+
+  it("keeps the other sessions of the same account valid", async () => {
+    const secondToken = getAuthToken(await login());
+
+    await request(app).post("/auth/logout").use(withAuth(token));
+
+    const res = await request(app).get("/customers").use(withAuth(secondToken));
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("issues a different token at every login", async () => {
+    const secondToken = getAuthToken(await login());
+
+    expect(secondToken).not.toBe(token);
+  });
+
+  it("rejects the token of an account that no longer exists", async () => {
+    await User.deleteOne({ email: "jan@example.com" });
+
+    const res = await request(app).get("/customers").use(withAuth(token));
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("uses the role stored in the database, not the one at login time", async () => {
+    await User.updateOne({ email: "jan@example.com" }, { role: "viewer" });
+
+    const res = await request(app)
+      .post("/customers/add")
+      .use(withAuth(token))
+      .send(customer);
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("rejects a token that has no identifier", async () => {
+    const user = await User.findOne({ email: "jan@example.com" });
+    const legacyToken = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    const res = await request(app).get("/customers").use(withAuth(legacyToken));
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.message).toBe("Invalid token");
   });
 });
