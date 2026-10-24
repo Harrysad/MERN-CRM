@@ -6,6 +6,8 @@ const {
   closeDatabase,
   clearDatabase,
   verifyUser,
+  getAuthToken,
+  withAuth,
 } = require("../../setup");
 
 let token;
@@ -37,11 +39,11 @@ beforeEach(async () => {
     password: "password123",
   });
 
-  token = loginRes.body.jwt;
+  token = getAuthToken(loginRes);
 
   await request(app)
     .post("/customers/add")
-    .set("Authorization", token)
+    .use(withAuth(token))
     .send({
       name: "Acme Corp",
       address: {
@@ -53,9 +55,7 @@ beforeEach(async () => {
       nip: "1112223344",
     });
 
-  const listRes = await request(app)
-    .get("/customers")
-    .set("Authorization", token);
+  const listRes = await request(app).get("/customers").use(withAuth(token));
   customerId = listRes.body.data[0]._id;
 });
 
@@ -69,7 +69,7 @@ describe("POST /actions/add", () => {
   it("creates a new action for an owned customer", async () => {
     const res = await request(app)
       .post("/actions/add")
-      .set("Authorization", token)
+      .use(withAuth(token))
       .send({ ...sampleAction, customer: customerId });
 
     expect(res.statusCode).toBe(201);
@@ -90,7 +90,7 @@ describe("POST /actions/add", () => {
 
     const res = await request(app)
       .post("/actions/add")
-      .set("Authorization", otherLogin.body.jwt)
+      .use(withAuth(getAuthToken(otherLogin)))
       .send({ ...sampleAction, customer: customerId });
 
     expect(res.statusCode).toBe(404);
@@ -99,7 +99,7 @@ describe("POST /actions/add", () => {
   it("ignores an owner in the create request", async () => {
     await request(app)
       .post("/actions/add")
-      .set("Authorization", token)
+      .use(withAuth(token))
       .send({
         ...sampleAction,
         customer: customerId,
@@ -108,7 +108,7 @@ describe("POST /actions/add", () => {
 
     const listRes = await request(app)
       .get(`/actions/${customerId}`)
-      .set("Authorization", token);
+      .use(withAuth(token));
     expect(listRes.body.data).toHaveLength(1);
   });
 });
@@ -117,12 +117,12 @@ describe("GET /actions/:customerId", () => {
   it("lists actions belonging to the account", async () => {
     await request(app)
       .post("/actions/add")
-      .set("Authorization", token)
+      .use(withAuth(token))
       .send({ ...sampleAction, customer: customerId });
 
     const res = await request(app)
       .get(`/actions/${customerId}`)
-      .set("Authorization", token);
+      .use(withAuth(token));
 
     expect(res.statusCode).toBe(200);
     expect(res.body.data).toHaveLength(1);
@@ -131,7 +131,7 @@ describe("GET /actions/:customerId", () => {
   it("does not list another account's actions for the same customer id", async () => {
     await request(app)
       .post("/actions/add")
-      .set("Authorization", token)
+      .use(withAuth(token))
       .send({ ...sampleAction, customer: customerId });
 
     await request(app).post("/auth/signup").send({
@@ -146,7 +146,7 @@ describe("GET /actions/:customerId", () => {
 
     const res = await request(app)
       .get(`/actions/${customerId}`)
-      .set("Authorization", otherLogin.body.jwt);
+      .use(withAuth(getAuthToken(otherLogin)));
 
     expect(res.body.data).toHaveLength(0);
   });
@@ -154,7 +154,7 @@ describe("GET /actions/:customerId", () => {
   it("caps the page size at 100", async () => {
     const res = await request(app)
       .get(`/actions/${customerId}?limit=1000`)
-      .set("Authorization", token);
+      .use(withAuth(token));
     expect(res.statusCode).toBe(200);
     expect(res.body.limit).toBe(100);
   });
@@ -162,7 +162,7 @@ describe("GET /actions/:customerId", () => {
   it("falls back to the first page for invalid page numbers", async () => {
     const res = await request(app)
       .get(`/actions/${customerId}?page=-3`)
-      .set("Authorization", token);
+      .use(withAuth(token));
     expect(res.statusCode).toBe(200);
     expect(res.body.page).toBe(1);
   });
@@ -174,7 +174,7 @@ describe("PUT /actions/edit/:id", () => {
   beforeEach(async () => {
     const res = await request(app)
       .post("/actions/add")
-      .set("Authorization", token)
+      .use(withAuth(token))
       .send({ ...sampleAction, customer: customerId });
     actionId = res.body._id;
   });
@@ -182,33 +182,33 @@ describe("PUT /actions/edit/:id", () => {
   it("updates the description of an action", async () => {
     const res = await request(app)
       .put(`/actions/edit/${actionId}`)
-      .set("Authorization", token)
+      .use(withAuth(token))
       .send({ description: "Zmieniony opis" });
 
     expect(res.statusCode).toBe(200);
 
     const listRes = await request(app)
       .get(`/actions/${customerId}`)
-      .set("Authorization", token);
+      .use(withAuth(token));
     expect(listRes.body.data[0].description).toBe("Zmieniony opis");
   });
 
   it("does not move an action to another customer", async () => {
     await request(app)
       .put(`/actions/edit/${actionId}`)
-      .set("Authorization", token)
+      .use(withAuth(token))
       .send({ customer: "000000000000000000000099" });
 
     const listRes = await request(app)
       .get(`/actions/${customerId}`)
-      .set("Authorization", token);
+      .use(withAuth(token));
     expect(listRes.body.data).toHaveLength(1);
   });
 
   it("rejects an action type outside the allowed list", async () => {
     const res = await request(app)
       .put(`/actions/edit/${actionId}`)
-      .set("Authorization", token)
+      .use(withAuth(token))
       .send({ type: "Nieznany" });
 
     expect(res.statusCode).toBe(400);
@@ -228,7 +228,7 @@ describe("Read-only role", () => {
   it("blocks a viewer from creating an action", async () => {
     const res = await request(app)
       .post("/actions/add")
-      .set("Authorization", viewerToken)
+      .use(withAuth(viewerToken))
       .send({ ...sampleAction, customer: "000000000000000000000002" });
 
     expect(res.statusCode).toBe(403);

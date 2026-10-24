@@ -5,6 +5,8 @@ const {
   closeDatabase,
   clearDatabase,
   verifyUser,
+  getAuthToken,
+  withAuth,
 } = require("../../setup");
 
 jest.mock("../../../app/services/emailService", () => ({
@@ -23,7 +25,7 @@ const customer = {
 };
 
 let loginRes;
-let authCookie;
+let token;
 
 const login = () =>
   request(app).post("/auth/login").send({
@@ -44,7 +46,7 @@ beforeEach(async () => {
   await verifyUser("jan@example.com");
 
   loginRes = await login();
-  authCookie = loginRes.headers["set-cookie"][0].split(";")[0];
+  token = getAuthToken(loginRes);
 });
 
 afterEach(async () => {
@@ -77,11 +79,16 @@ describe("login cookie", () => {
       process.env.NODE_ENV = originalEnv;
     }
   });
+
+  it("does not return the token in the response body", () => {
+    expect(loginRes.body.jwt).toBeUndefined();
+    expect(loginRes.body.role).toBe("admin");
+  });
 });
 
 describe("authentication with the cookie", () => {
   it("allows a read request", async () => {
-    const res = await request(app).get("/customers").set("Cookie", authCookie);
+    const res = await request(app).get("/customers").use(withAuth(token));
 
     expect(res.statusCode).toBe(200);
   });
@@ -89,7 +96,7 @@ describe("authentication with the cookie", () => {
   it("rejects a write request without the CSRF header", async () => {
     const res = await request(app)
       .post("/customers/add")
-      .set("Cookie", authCookie)
+      .set("Cookie", `AuthToken=${token}`)
       .send(customer);
 
     expect(res.statusCode).toBe(403);
@@ -99,8 +106,7 @@ describe("authentication with the cookie", () => {
   it("allows a write request that carries the CSRF header", async () => {
     const res = await request(app)
       .post("/customers/add")
-      .set("Cookie", authCookie)
-      .set("X-Requested-With", "XMLHttpRequest")
+      .use(withAuth(token))
       .send(customer);
 
     expect(res.statusCode).toBe(201);
@@ -114,28 +120,19 @@ describe("authentication with the cookie", () => {
     expect(res.statusCode).toBe(401);
     expect(res.body.message).toBe("Invalid token");
   });
-});
-
-describe("authentication with the Authorization header", () => {
-  it("still allows a write request without the CSRF header", async () => {
-    const res = await request(app)
-      .post("/customers/add")
-      .set("Authorization", loginRes.body.jwt)
-      .send(customer);
-
-    expect(res.statusCode).toBe(201);
-  });
-
-  it("rejects an invalid token", async () => {
-    const res = await request(app)
-      .get("/customers")
-      .set("Authorization", "garbage");
-
-    expect(res.statusCode).toBe(401);
-  });
 
   it("rejects a request without any credentials", async () => {
     const res = await request(app).get("/customers");
+
+    expect(res.statusCode).toBe(401);
+  });
+});
+
+describe("the Authorization header", () => {
+  it("is no longer accepted as a way to authenticate", async () => {
+    const res = await request(app)
+      .get("/customers")
+      .set("Authorization", token);
 
     expect(res.statusCode).toBe(401);
   });

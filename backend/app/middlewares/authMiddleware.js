@@ -4,9 +4,7 @@ const { COOKIE_NAME } = require("../helpers/authCookie");
 const SAFE_METHODS = ["GET", "HEAD", "OPTIONS"];
 
 module.exports = (req, res, next) => {
-  const headerToken = req.header("Authorization");
-  const cookieToken = req.cookies?.[COOKIE_NAME];
-  const token = headerToken || cookieToken;
+  const token = req.cookies?.[COOKIE_NAME];
 
   if (!token) {
     return res.status(401).json({
@@ -14,9 +12,7 @@ module.exports = (req, res, next) => {
     });
   }
 
-  const usesCookie = !headerToken;
   if (
-    usesCookie &&
     !SAFE_METHODS.includes(req.method) &&
     req.header("X-Requested-With") !== "XMLHttpRequest"
   ) {
