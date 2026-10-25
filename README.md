@@ -35,15 +35,16 @@ Want to try the signup flow? Register your own account (a disposable address fro
 
 ## Tech Stack
 
-| Area         | Technologies                                                                                           |
-| ------------ | ------------------------------------------------------------------------------------------------------ |
-| Backend      | Node.js, Express, MongoDB, Mongoose, JWT, bcrypt, helmet, express-rate-limit                           |
-| Frontend     | React, Vite, React Router, Axios, React Bootstrap                                                      |
-| Testing      | Jest, Supertest, mongodb-memory-server (backend); Vitest, Testing Library (frontend)                   |
-| API docs     | OpenAPI 3 specification, Swagger UI                                                                    |
-| DevOps       | Docker (multi-stage), Docker Compose, GitHub Actions, GitHub Container Registry                        |
-| Hosting      | Render (backend + static frontend, custom domains), MongoDB Atlas                                      |
-| External API | Poland's VAT payer registry ("biała lista podatników", wl-api.mf.gov.pl), Resend (transactional email) |
+| Area         | Technologies                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------------- |
+| Backend      | Node.js, Express, MongoDB, Mongoose, JWT, bcrypt, helmet, express-rate-limit                                  |
+| Frontend     | React, Vite, React Router, Axios, React Bootstrap                                                             |
+| Testing      | Jest, Supertest, mongodb-memory-server (backend); Vitest, Testing Library (frontend)                          |
+| API docs     | OpenAPI 3 specification, Swagger UI                                                                           |
+| DevOps       | Docker (multi-stage), Docker Compose, GitHub Actions, GitHub Container Registry                               |
+| Hosting      | Render (backend + static frontend, custom domains), MongoDB Atlas                                             |
+| External API | Poland's VAT payer registry ("biała lista podatników", wl-api.mf.gov.pl), Resend (transactional email)        |
+| Testing      | Jest, Supertest, mongodb-memory-server (backend); Vitest, Testing Library (frontend); Playwright (end-to-end) |
 
 ## Project Structure
 
@@ -54,6 +55,7 @@ mern-crm/
 │   ├── cd.yml                    # publishes Docker images to GHCR on push to main
 │   └── cleanup-accounts.yml      # daily cleanup of expired accounts
 ├── .githooks/                    # git hooks: commit format, protected main, tests before push
+├── e2e/                          # Playwright end-to-end tests (own MongoDB database, Chromium + WebKit)
 ├── docker-compose.yml            # local dev: MongoDB + backend + frontend
 ├── backend/                      # Express REST API
 │   ├── server.js                 # entry point: DB connection + listen
@@ -191,15 +193,20 @@ All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/
 
 ## Running Tests
 
-```bash
 # Backend
+
 cd backend && npm test
 
 # Frontend
+
 cd frontend && npm test -- run
-```
+
+# End-to-end (needs MongoDB on 127.0.0.1:27017, for example `docker compose up -d mongo`)
+
+cd e2e && npx playwright install chromium webkit && npm test
 
 Backend tests run against an in-memory MongoDB, so no database is needed. They cover authentication and email verification (with the email service mocked), per-account data isolation, role-based write restrictions, the account cleanup, rate limiting, input validation and the NIP-lookup address parsing. Frontend tests cover the custom hooks (session timeout, debounce, countdown, theme, page size), formatting and message helpers, and the pagination, toolbar, action list and modal components.
+The end-to-end tests start the backend and the built frontend on their own ports against a separate database (`crm_e2e`) and drive them in Chromium and WebKit. They cover signup and login, the verification banner, the httpOnly session cookie and server-side logout, customer management with a mocked NIP registry, per-account data isolation, and the read-only and unverified accounts.
 
 ### Git hooks
 
@@ -211,7 +218,7 @@ git config core.hooksPath .githooks
 
 ## CI/CD
 
-- **CI** (`.github/workflows/ci.yml`) runs on every pull request to `main`: backend tests, frontend tests plus a production build, and validation that both production Docker images build. `main` is protected, so a PR can only be merged when all three checks pass.
+- **CI** (`.github/workflows/ci.yml`) runs on every pull request to `main`: backend tests, frontend tests plus a production build, and validation that both production Docker images build. `main` is protected, so a PR can only be merged when all three checks pass. A separate `e2e-tests` job runs the Playwright tests against a MongoDB service container.
 - **CD** (`.github/workflows/cd.yml`) runs on every push to `main` and publishes the production images to GitHub Container Registry (`ghcr.io/harrysad/mern-crm-backend` and `ghcr.io/harrysad/mern-crm-frontend`).
 - **Deployment:** Render deploys the backend (Docker) and the frontend (static site) automatically once CI passes; the production database is MongoDB Atlas. The frontend is served from `app-mern.debowski.eu` and the API from `api-mern.debowski.eu`, two custom domains of the same site.
 - **Scheduled cleanup** (`.github/workflows/cleanup-accounts.yml`) runs daily at 03:00 UTC and can also be started manually. It calls the backend's internal cleanup endpoint with a shared secret, which deletes every account older than 3 days except the demo one, together with its data. It retries so it can cope with the free Render instance waking up.
@@ -219,5 +226,5 @@ git config core.hooksPath .githooks
 
 ## What I'd Improve Next
 
-- End-to-end tests (Playwright) and component tests for the customer list and forms
+- Component tests for the customer list and forms
 - Run the email outbox worker in a separate process or on a durable queue: it currently retries on a timer inside the API process, so retries pause while the free Render instance is asleep
