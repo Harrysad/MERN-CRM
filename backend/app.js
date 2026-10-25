@@ -11,8 +11,16 @@ const authMiddleware = require("./app/middlewares/authMiddleware");
 const userRouter = require("./app/router/userRouter");
 const { nipLimiter } = require("./app/middlewares/rateLimiters");
 const sendServerError = require("./app/helpers/sendServerError");
+const fs = require("fs");
+const path = require("path");
+const yaml = require("js-yaml");
+const swaggerUi = require("swagger-ui-express");
 
 const app = express();
+
+const openApiSpec = yaml.load(
+  fs.readFileSync(path.join(__dirname, "openapi.yaml"), "utf8"),
+);
 
 app.set("trust proxy", 1);
 
@@ -26,11 +34,18 @@ app.use(
     credentials: true,
   }),
 );
+/* API documentation */
+app.get("/openapi.json", (req, res) => res.json(openApiSpec));
+app.use(
+  "/docs",
+  (req, res, next) => {
+    res.removeHeader("Content-Security-Policy");
+    next();
+  },
+  swaggerUi.serve,
+  swaggerUi.setup(openApiSpec, { customSiteTitle: "MERN CRM API" }),
+);
 
-// app.use((req, _res, next) => {
-//   console.log("All cookies: ", req.cookies);
-//   next();
-// });
 
 /* Routes */
 app.use("/auth", userRouter);
