@@ -55,6 +55,12 @@ describe("OpenAPI specification", () => {
     expect(res.body.info.title).toBe("MERN CRM API");
     expect(Object.keys(res.body.paths).length).toBeGreaterThan(10);
   });
+
+  it("sends Swagger UI requests to the host that serves the page", async () => {
+    const spec = await SwaggerParser.parse(SPEC_PATH);
+
+    expect(spec.servers[0].url).toBe("/");
+  });
 });
 
 describe("Swagger UI", () => {

@@ -15,6 +15,8 @@ info:
 
     **Limits and errors.** Login, signup and the NIP lookup are rate limited per IP address and answer `429`. A missing, invalid, expired or revoked session answers `401`. Server errors answer `500` with a generic message.
 servers:
+  - url: /
+    description: The host that serves this page
   - url: https://api-mern.debowski.eu
     description: Production
   - url: http://localhost:5070
