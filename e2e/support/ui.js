@@ -6,4 +6,15 @@ const loginViaUi = async (page, { email, password }) => {
   await page.waitForURL((url) => url.pathname === "/");
 };
 
-module.exports = { loginViaUi };
+const fillCustomerForm = async (page, customer) => {
+  await page.locator('input[name="name"]').fill(customer.name);
+  await page.locator('input[name="nip"]').fill(customer.nip);
+  await page.locator('input[name="address.street"]').fill(customer.address.street);
+  await page.locator('input[name="address.suite"]').fill(customer.address.suite);
+  await page.locator('input[name="address.city"]').fill(customer.address.city);
+  await page
+    .locator('input[name="address.postcode"]')
+    .fill(customer.address.postcode);
+};
+
+module.exports = { loginViaUi, fillCustomerForm };

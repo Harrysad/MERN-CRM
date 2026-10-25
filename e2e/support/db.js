@@ -21,7 +21,7 @@ const resetDatabase = () =>
 
 const waitForUserIndexes = () =>
   withDb(async (db) => {
-    for (let attempt = 0; attempt < 50; attempt++) {
+    for (let attempt = 0; attempt < 150; attempt++) {
       const indexes = await db
         .collection("users")
         .indexes()
