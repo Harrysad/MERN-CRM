@@ -40,6 +40,7 @@ Want to try the signup flow? Register your own account (a disposable address fro
 | Backend      | Node.js, Express, MongoDB, Mongoose, JWT, bcrypt, helmet, express-rate-limit                           |
 | Frontend     | React, Vite, React Router, Axios, React Bootstrap                                                      |
 | Testing      | Jest, Supertest, mongodb-memory-server (backend); Vitest, Testing Library (frontend)                   |
+| API docs     | OpenAPI 3 specification, Swagger UI                                                                    |
 | DevOps       | Docker (multi-stage), Docker Compose, GitHub Actions, GitHub Container Registry                        |
 | Hosting      | Render (backend + static frontend, custom domains), MongoDB Atlas                                      |
 | External API | Poland's VAT payer registry ("biała lista podatników", wl-api.mf.gov.pl), Resend (transactional email) |
@@ -57,6 +58,7 @@ mern-crm/
 ├── backend/                      # Express REST API
 │   ├── server.js                 # entry point: DB connection + listen
 │   ├── app.js                    # Express app (middleware, routes), importable in tests
+│   ├── openapi.yaml              # OpenAPI 3 description of the API, served as JSON and as Swagger UI
 │   ├── Dockerfile                # multi-stage: dev / production
 │   ├── app/
 │   │   ├── configs/              # database connection
@@ -140,6 +142,15 @@ It needs Node.js 24.16 or newer (see `.nvmrc`); older 24.x releases crash on Win
 The scheduled cleanup workflow additionally needs two GitHub repository secrets: `BACKEND_URL` (the API domain) and `INTERNAL_CLEANUP_SECRET` (the same value as on the server).
 In production `FRONTEND_URL` is `https://app-mern.debowski.eu` and the frontend is built with `VITE_API_URL=https://api-mern.debowski.eu`.
 
+## API Documentation
+
+The API is described by an OpenAPI 3 specification (`backend/openapi.yaml`) and published as an interactive Swagger UI:
+
+- 📘 **[https://api-mern.debowski.eu/docs](https://api-mern.debowski.eu/docs)**: browse every endpoint with its schemas and status codes, and try it out in the browser. Log in with `POST /auth/login` on that page (the demo account is `demo@example.com` / `Demo12345`) and the browser sends the session cookie with the following requests.
+- The raw specification is available at `/openapi.json` (locally `http://localhost:5070/docs` and `http://localhost:5070/openapi.json`).
+
+A test compares the routes registered in Express with the documented ones and validates the document, so an endpoint added without documentation fails the build.
+
 ## API Overview
 
 All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/internal/*` require the session cookie set by `/auth/login`. Requests that change data must also carry an `X-Requested-With: XMLHttpRequest` header as protection against cross-site request forgery. A missing, invalid, expired or revoked token answers `401`, and the role and verification status are read from the database on every request. Every account is scoped to its own data — a customer or interaction created by one account is never visible to another. New accounts get the `admin` role by default; a `viewer`-role account can use every `GET` endpoint but gets a `403` on `POST`/`PUT`/`DELETE`. Until its email address is confirmed, an account is treated the same way: reads work, writes return `403`. Login, signup and the NIP lookup are rate limited per IP address and answer `429` when the limit is exceeded. Responses carry standard security headers (via helmet), and server errors return a generic JSON message instead of internal details.
@@ -148,7 +159,7 @@ All endpoints except `/auth/signup`, `/auth/login`, `/auth/verify/:token` and `/
 | ------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | POST   | `/auth/signup`               | Register a user (the password must have at least 8 characters)                                                                               |
 | POST   | `/auth/login`                | Log in: sets the httpOnly session cookie; the token is not returned in the response body                                                     |
-| POST   | `/auth/logout`               | Log out: clears the cookie and revokes the token on the server                                                                                                                                      |
+| POST   | `/auth/logout`               | Log out: clears the cookie and revokes the token on the server                                                                               |
 | GET    | `/auth/verify/:token`        | Confirm an email address with the token from the verification email (valid for 24 hours)                                                     |
 | POST   | `/auth/resend-verification`  | Send a new verification link (60 s cooldown); the response includes the delivery status of the email                                         |
 | GET    | `/auth/verification-status`  | Check whether the current account is verified and what happened to its latest verification email                                             |
@@ -209,5 +220,4 @@ git config core.hooksPath .githooks
 ## What I'd Improve Next
 
 - End-to-end tests (Playwright) and component tests for the customer list and forms
-- API documentation (OpenAPI/Swagger)
 - Run the email outbox worker in a separate process or on a durable queue: it currently retries on a timer inside the API process, so retries pause while the free Render instance is asleep
