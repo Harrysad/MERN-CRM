@@ -1,0 +1,16 @@
+{
+  "name": "mern-crm-e2e",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report"
+  },
+  "engines": {
+    "node": ">=24.16.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "mongodb": "^7.7.0"
+  }
+}
