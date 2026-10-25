@@ -1,0 +1,961 @@
+openapi: 3.0.3
+info:
+  title: MERN CRM API
+  version: 1.0.0
+  description: |
+    REST API of the MERN CRM portfolio project.
+
+    **Authentication.** `POST /auth/login` sets an httpOnly session cookie named `AuthToken`. Every endpoint except signup, login, logout, email verification and `/internal/*` needs that cookie. The token is never returned in a response body.
+
+    **Trying the API here.** Log in with `POST /auth/login` on this page. The browser stores the cookie and sends it with every following request, so the other endpoints work from "Try it out". The demo account is `demo@example.com` / `Demo12345` and is read-only.
+
+    **Protection against cross-site request forgery.** Requests that change data (`POST`, `PUT`, `DELETE`) must carry the header `X-Requested-With: XMLHttpRequest`. Without it the API answers `403`.
+
+    **Write access.** A `viewer` account and an account whose email address is not confirmed can read data but get `403` on every request that changes data.
+
+    **Limits and errors.** Login, signup and the NIP lookup are rate limited per IP address and answer `429`. A missing, invalid, expired or revoked session answers `401`. Server errors answer `500` with a generic message.
+servers:
+  - url: https://api-mern.debowski.eu
+    description: Production
+  - url: http://localhost:5070
+    description: Local development
+tags:
+  - name: Auth
+    description: Registration, login, email verification
+  - name: Customers
+    description: Customers of the signed-in account
+  - name: Actions
+    description: Interactions logged for a customer
+  - name: NIP
+    description: Company lookup in Poland's VAT payer registry
+  - name: Internal
+    description: Endpoints for the scheduled workflows, protected by a shared secret
+  - name: Docs
+    description: This documentation
+paths:
+  /auth/signup:
+    post:
+      tags: [Auth]
+      operationId: signup
+      summary: Register an account and send the verification email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupInput"
+      responses:
+        "201":
+          description: Account created. `emailStatus` tells whether the verification email was sent right away.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignupResponse"
+        "400":
+          description: Invalid data, for example a password shorter than 8 characters.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: An account with this email address already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Log in and start a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in. The session token is set in the httpOnly cookie `AuthToken`.
+          headers:
+            Set-Cookie:
+              description: "`AuthToken`, httpOnly, SameSite=Lax, secure in production, valid for one hour."
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "400":
+          description: Invalid email or password.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: Log out, clear the cookie and revoke the token
+      description: Other sessions of the same account stay valid.
+      responses:
+        "200":
+          description: Logged out.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /auth/verify/{token}:
+    get:
+      tags: [Auth]
+      operationId: verifyEmail
+      summary: Confirm an email address with the token from the verification email
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Email address confirmed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          description: The link is invalid, already used or older than 24 hours.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /auth/resend-verification:
+    post:
+      tags: [Auth]
+      operationId: resendVerification
+      summary: Send a new verification link
+      description: Allowed once per 60 seconds.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CsrfHeader"
+      responses:
+        "200":
+          description: A new link was issued. `emailStatus` tells whether it was sent right away.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResendResponse"
+        "400":
+          description: The email address is already confirmed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: The account no longer exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "429":
+          description: The previous link was sent less than 60 seconds ago.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResendCooldown"
+  /auth/verification-status:
+    get:
+      tags: [Auth]
+      operationId: verificationStatus
+      summary: Check whether the account is verified and what happened to its latest verification email
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Verification status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: The account no longer exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /customers:
+    get:
+      tags: [Customers]
+      operationId: listCustomers
+      summary: List the customers of the account
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Page size, at most 100.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: sort
+          in: query
+          description: Any other value falls back to `name`.
+          schema:
+            type: string
+            enum: [name, address.postcode, nip]
+            default: name
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - name: search
+          in: query
+          description: Case-insensitive match on company name, NIP or city.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: A page of customers.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /customers/{id}:
+    get:
+      tags: [Customers]
+      operationId: getCustomer
+      summary: Get one customer
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: The customer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: The customer does not exist or belongs to another account.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Customer not found.
+  /customers/add:
+    post:
+      tags: [Customers]
+      operationId: createCustomer
+      summary: Create a customer
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CsrfHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerInput"
+      responses:
+        "201":
+          description: Customer created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerInput"
+        "400":
+          description: The customer could not be created, for example a required field is missing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: A customer with this NIP already exists in the account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customers/edit/{id}:
+    put:
+      tags: [Customers]
+      operationId: updateCustomer
+      summary: Update a customer
+      description: Only `name`, `address` and `nip` are accepted, other fields are ignored.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/CsrfHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerInput"
+      responses:
+        "200":
+          description: Customer updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          description: Invalid customer data.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: The customer does not exist or belongs to another account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "409":
+          description: Another customer in the account already has this NIP.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customers/delete/{id}:
+    delete:
+      tags: [Customers]
+      operationId: deleteCustomer
+      summary: Delete a customer
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/CsrfHeader"
+      responses:
+        "200":
+          description: Customer deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deleted"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: The customer does not exist or belongs to another account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /actions/{customerId}:
+    get:
+      tags: [Actions]
+      operationId: listActions
+      summary: List the interactions of a customer
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Page size, at most 100.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: A page of interactions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /actions/add:
+    post:
+      tags: [Actions]
+      operationId: createAction
+      summary: Add an interaction to a customer
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CsrfHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActionCreate"
+      responses:
+        "201":
+          description: Interaction created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Action"
+        "400":
+          description: The customer ID is missing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: The customer does not exist or belongs to another account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /actions/edit/{id}:
+    put:
+      tags: [Actions]
+      operationId: updateAction
+      summary: Update an interaction
+      description: Only `type`, `description` and `date` are accepted, the customer cannot be changed.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/CsrfHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActionUpdate"
+      responses:
+        "200":
+          description: Interaction updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Action edited successfully
+                  action:
+                    $ref: "#/components/schemas/Action"
+        "400":
+          description: Invalid interaction data, for example an unknown type.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: The interaction does not exist or belongs to another account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /actions/delete/{id}:
+    delete:
+      tags: [Actions]
+      operationId: deleteAction
+      summary: Delete an interaction
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/CsrfHeader"
+      responses:
+        "200":
+          description: Interaction deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deleted"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: The interaction does not exist or belongs to another account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /nip/{nip}:
+    get:
+      tags: [NIP]
+      operationId: lookupNip
+      summary: Look up a company by NIP
+      description: Queries Poland's VAT payer registry and returns the company name and address formatted for the customer form. Available to every role.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: nip
+          in: path
+          required: true
+          description: A 10-digit NIP, separators are ignored.
+          schema:
+            type: string
+            example: "5260250274"
+      responses:
+        "200":
+          description: The company found in the registry.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NipLookup"
+        "400":
+          description: The NIP is not 10 digits long or the registry rejected it.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No company with this NIP.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "502":
+          description: The registry is unreachable or answered with an error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /internal/cleanup-accounts:
+    post:
+      tags: [Internal]
+      operationId: cleanupAccounts
+      summary: Delete accounts older than 3 days, except the demo account
+      description: Not for users. Called by the scheduled GitHub Actions workflow with a shared secret.
+      security:
+        - internalSecret: []
+      responses:
+        "200":
+          description: Number of deleted accounts.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: integer
+                    example: 4
+        "401":
+          description: The secret is missing or wrong.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "503":
+          description: The secret is not configured on the server.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /internal/emails:
+    get:
+      tags: [Internal]
+      operationId: emailStats
+      summary: Delivery statistics of the email outbox
+      description: Not for users. Counts by status and the most recent delivery errors, without addresses.
+      security:
+        - internalSecret: []
+      responses:
+        "200":
+          description: Outbox statistics.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailStats"
+        "401":
+          description: The secret is missing or wrong.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "503":
+          description: The secret is not configured on the server.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /openapi.json:
+    get:
+      tags: [Docs]
+      operationId: openApiDocument
+      summary: This specification as JSON
+      responses:
+        "200":
+          description: The OpenAPI document.
+          content:
+            application/json:
+              schema:
+                type: object
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: AuthToken
+      description: httpOnly session cookie set by `POST /auth/login`. It cannot be typed in by hand, log in on this page and the browser sends it for you.
+    internalSecret:
+      type: apiKey
+      in: header
+      name: X-Internal-Secret
+      description: Shared secret of the scheduled workflows.
+  parameters:
+    CsrfHeader:
+      name: X-Requested-With
+      in: header
+      required: true
+      description: Protection against cross-site request forgery. Required on every request that changes data.
+      schema:
+        type: string
+        enum: [XMLHttpRequest]
+        default: XMLHttpRequest
+    IdPath:
+      name: id
+      in: path
+      required: true
+      description: MongoDB ObjectId.
+      schema:
+        type: string
+        example: "64f0c0a1b2c3d4e5f6a7b8c9"
+  responses:
+    Unauthorized:
+      description: The session is missing, invalid, expired or revoked.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Message"
+    Forbidden:
+      description: The account is read-only (viewer role or unconfirmed email) or the CSRF header is missing.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Message"
+    TooManyRequests:
+      description: Rate limit exceeded for this IP address.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Message:
+      type: object
+      properties:
+        message:
+          type: string
+    Error:
+      type: object
+      properties:
+        error:
+          type: boolean
+          example: true
+        message:
+          type: string
+    Deleted:
+      type: object
+      properties:
+        message:
+          type: string
+        deleted:
+          type: boolean
+          example: true
+    SignupInput:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          example: Jan Kowalski
+        email:
+          type: string
+          format: email
+          example: jan@example.com
+        password:
+          type: string
+          minLength: 8
+          example: password123
+    SignupResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        emailStatus:
+          $ref: "#/components/schemas/EmailStatus"
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          example: demo@example.com
+        password:
+          type: string
+          example: Demo12345
+    SessionUser:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, viewer]
+        verified:
+          type: boolean
+    EmailStatus:
+      type: string
+      nullable: true
+      description: Delivery state of the latest verification email, null when none was queued.
+      enum: [sent, pending, failed, null]
+    VerificationStatus:
+      type: object
+      properties:
+        verified:
+          type: boolean
+        emailStatus:
+          $ref: "#/components/schemas/EmailStatus"
+    ResendResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        emailStatus:
+          $ref: "#/components/schemas/EmailStatus"
+        retryAfterSeconds:
+          type: integer
+          example: 60
+    ResendCooldown:
+      type: object
+      properties:
+        message:
+          type: string
+        retryAfterSeconds:
+          type: integer
+    Address:
+      type: object
+      required: [street, suite, city, postcode]
+      properties:
+        street:
+          type: string
+          example: Testowa
+        suite:
+          type: string
+          example: "10"
+        city:
+          type: string
+          example: Warszawa
+        postcode:
+          type: string
+          example: "00-001"
+    CustomerInput:
+      type: object
+      required: [name, address, nip]
+      properties:
+        name:
+          type: string
+          example: Acme Sp. z o.o.
+        address:
+          $ref: "#/components/schemas/Address"
+        nip:
+          type: string
+          example: "1234567890"
+    Customer:
+      allOf:
+        - $ref: "#/components/schemas/CustomerInput"
+        - type: object
+          properties:
+            _id:
+              type: string
+            owner:
+              type: string
+            actions:
+              type: array
+              items:
+                type: string
+    CustomerList:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        pages:
+          type: integer
+        dataCount:
+          type: integer
+        hasNextPage:
+          type: boolean
+        hasPreviousPage:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Customer"
+    ActionType:
+      type: string
+      enum: [Telefon, Spotkanie, Mail, Wideo rozmowa]
+    ActionCreate:
+      type: object
+      required: [type, customer]
+      properties:
+        type:
+          $ref: "#/components/schemas/ActionType"
+        description:
+          type: string
+          example: Pierwsza rozmowa
+        date:
+          type: string
+          format: date-time
+          example: "2026-09-01T10:00:00.000Z"
+        customer:
+          type: string
+          description: ID of a customer of the same account.
+    ActionUpdate:
+      type: object
+      properties:
+        type:
+          $ref: "#/components/schemas/ActionType"
+        description:
+          type: string
+        date:
+          type: string
+          format: date-time
+    Action:
+      type: object
+      properties:
+        _id:
+          type: string
+        owner:
+          type: string
+        type:
+          $ref: "#/components/schemas/ActionType"
+        description:
+          type: string
+        date:
+          type: string
+          format: date-time
+        customer:
+          description: Customer ID, or the customer's `_id` and `name` in a list.
+          oneOf:
+            - type: string
+            - type: object
+              properties:
+                _id:
+                  type: string
+                name:
+                  type: string
+    ActionList:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalActions:
+          type: integer
+        pages:
+          type: integer
+        dataCount:
+          type: integer
+        hasNextPage:
+          type: boolean
+        hasPreviousPage:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Action"
+    NipLookup:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Acme Sp. z o.o.
+        address:
+          $ref: "#/components/schemas/Address"
+    EmailStats:
+      type: object
+      properties:
+        pending:
+          type: integer
+        sent:
+          type: integer
+        failed:
+          type: integer
+        recentFailures:
+          type: array
+          items:
+            type: object
+            properties:
+              kind:
+                type: string
+                enum: [verification, deletion]
+              status:
+                type: string
+                enum: [pending, sent, failed]
+              attempts:
+                type: integer
+              lastError:
+                type: string
+              updatedAt:
+                type: string
+                format: date-time
